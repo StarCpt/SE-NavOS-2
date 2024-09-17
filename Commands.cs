@@ -289,6 +289,34 @@ namespace IngameScript
                 optionalInfo = failReason;
         }
 
+        private void CommandApproach(CommandLine cmd)
+        {
+            optionalInfo = "";
+            double dist = 200; // Default distance if not provided
+
+            if (cmd.Count >= 2 && !double.TryParse(cmd[1], out dist))
+            {
+                optionalInfo = "Invalid distance argument";
+                return;
+            }
+
+            if (!wcApiActive)
+            {
+                try { wcApiActive = wcApi.Activate(Me); }
+                catch { wcApiActive = false; }
+            }
+            if (!wcApiActive)
+                return;
+            var target = wcApi.GetAiFocus(Me.CubeGrid.EntityId);
+            if ((target?.EntityId ?? 0) == 0)
+                return;
+
+            var targetPosition = target?.Position;
+            Vector3D approachPoint = targetPosition.Value + (controller.GetPosition() - targetPosition.Value).SafeNormalize() * (dist + 10 * (target?.Velocity.Length() ?? 0));
+
+            InitJourneyToPoint(approachPoint, true);
+        }
+
         private void InitOrient(Vector3D target)
         {
             NavMode = NavModeEnum.Orient;

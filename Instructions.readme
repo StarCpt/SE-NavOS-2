@@ -1,4 +1,5 @@
 ﻿NavOS v2.14.7 brought to you by StarCpt
+Forked by Dr. Rak of DNB
 
 Config (In the customdata of the pb - Must recompile when modified!!):
 # PersistStateData: DO NOT TOUCH
@@ -48,6 +49,9 @@ Example: Cruise 500 15000:70000:17000
 Same as above for GPSes
 Example: Cruise 500 GPS:target:15000:70000:17000:FFFFFF
 
+# Approach <Distance (optional)>
+Approaches the target stopping the ship at the specified distance from the target (default: 200m).
+
 # Retro/Retrograde
 Points the ship in the opposite direction of travel
 
@@ -60,6 +64,12 @@ Points the ship to retrograde and stops the ship
 # Match
 Matches speed to CURRENT WeaponCore lock, stays on that target even if locked target changes.
 Rerun the command to change speed match target to current WeaponCore lock.
+
+# Range <Distance (optional)>
+Match a target's speed while keeping a set distance from it (default 6000m).
+
+# RangeAny <Distance (optional)>
+Match speed to the closest target while keeping a set distance (default 6000m), dynamically switches targets if another gets closer.
 
 # Orient <GPS>
 Orients the ship to point in the direction of the gps with no thruster controls applied.
