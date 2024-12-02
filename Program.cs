@@ -407,7 +407,7 @@ namespace IngameScript
         private void WritePbOutput()
         {
             //PB Output
-            const string programInfoStr = programName + " v" + versionStr + " | ";
+            const string programInfoStr = programName + " v" + versionStr + " | DEBUG EDITION ";
             const string commandStr = @"
 All Commands:
 Cruise <Speed> <distance>

@@ -85,3 +85,6 @@ Loads the journey setup from config
 
 # Journey Start (Experimental!)
 Starts the journey if waypoints are loaded
+
+# Approach <distance>
+Approaches the target stopping the ship at the specified distance from the target (default: 200m).

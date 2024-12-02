@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VRageMath;
+using static IngameScript.Journey;
 
 namespace IngameScript
 {
@@ -28,6 +29,9 @@ namespace IngameScript
                 { "calibrateturn", cmd => CommandCalibrateTurnTime() },
                 { "thrust", CommandApplyThrust },
                 { "journey", CommandJourney },
+                { "approach", CommandApproach },
+                { "range", CommandRange },
+                { "rangeany", CommandRangeAny }
             };
         }
 
@@ -127,7 +131,7 @@ namespace IngameScript
 
                         target = new Vector3D(x, y, z);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         optionalInfo = "Error occurred while parsing coords";
                         return;
@@ -289,6 +293,85 @@ namespace IngameScript
                 optionalInfo = failReason;
         }
 
+        private void CommandApproach(CommandLine cmd)
+        {
+            optionalInfo = "";
+            double dist = 200; // Default distance if not provided
+
+            if (cmd.Count >= 2 && !double.TryParse(cmd[1], out dist))
+            {
+                optionalInfo = "Invalid distance argument";
+                return;
+            }
+
+            if (!wcApiActive)
+            {
+                try { wcApiActive = wcApi.Activate(Me); }
+                catch { wcApiActive = false; }
+            }
+            if (!wcApiActive)
+                return;
+            var target = wcApi.GetAiFocus(Me.CubeGrid.EntityId);
+            if ((target?.EntityId ?? 0) == 0)
+                return;
+
+            var targetPosition = target?.Position;
+            Vector3D approachPoint = targetPosition.Value + (controller.GetPosition() - targetPosition.Value).SafeNormalize() * dist;
+
+            InitJourneyToPoint(approachPoint, true);
+        }
+
+        private void CommandRange(CommandLine cmd)
+        {
+            AbortNav(false);
+            optionalInfo = "";
+
+            optionalInfo = "";
+            double dist = 6000; // Default distance if not provided
+
+            if (cmd.Count >= 2 && !double.TryParse(cmd[1], out dist))
+            {
+                optionalInfo = "Invalid distance argument";
+                return;
+            }
+
+            if (!wcApiActive)
+            {
+                try { wcApiActive = wcApi.Activate(Me); }
+                catch { wcApiActive = false; }
+            }
+            if (!wcApiActive)
+                return;
+            var target = wcApi.GetAiFocus(Me.CubeGrid.EntityId);
+            if ((target?.EntityId ?? 0) == 0)
+                return;
+            InitRange(target.Value.EntityId, dist);
+        }
+
+        private void CommandRangeAny(CommandLine cmd)
+        {
+            AbortNav(false);
+            optionalInfo = "";
+
+            optionalInfo = "";
+            double dist = 6000; // Default distance if not provided
+
+            if (cmd.Count >= 2 && !double.TryParse(cmd[1], out dist))
+            {
+                optionalInfo = "Invalid distance argument";
+                return;
+            }
+
+            if (!wcApiActive)
+            {
+                try { wcApiActive = wcApi.Activate(Me); }
+                catch { wcApiActive = false; }
+            }
+            if (!wcApiActive)
+                return;
+            InitRange(-1, dist);
+        }
+
         private void InitOrient(Vector3D target)
         {
             NavMode = NavModeEnum.Orient;
@@ -315,6 +398,33 @@ namespace IngameScript
             thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
             cruiseController.CruiseTerminated += CruiseTerminated;
+        }
+
+        private void InitJourneyToPoint(Vector3D point, Boolean approach = false)
+        {
+            NavMode = NavModeEnum.Journey;
+            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+
+            // Create a single waypoint for the journey
+            var waypoint = new Journey.Waypoint("Approach Point", 15000, point, true);
+            var waypoints = new List<Journey.Waypoint> { waypoint };
+
+            cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this)
+            {
+                waypoints = waypoints
+            };
+            cruiseController.CruiseTerminated += CruiseTerminated;
+            ((Journey)cruiseController).InitStep(0, approach);
+            SaveConfig();
+        }
+
+        private void InitRange(long targetId, double dist)
+        {
+            NavMode = NavModeEnum.SpeedMatch;
+            thrustController.MaxThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)config.MaxThrustOverrideRatio;
+            cruiseController = new Range(targetId, wcApi, controller, Me, thrustController, dist);
+            cruiseController.CruiseTerminated += CruiseTerminated;
+            SaveConfig();
         }
     }
 }

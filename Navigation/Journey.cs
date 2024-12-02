@@ -22,7 +22,7 @@ namespace IngameScript
         Program prog;
 
         private ICruiseController cruiseControl;
-        private List<Waypoint> waypoints;
+        public List<Waypoint> waypoints;
         private bool started = false;
         private int currentStep = 0;
 
@@ -108,8 +108,8 @@ namespace IngameScript
 
             return false;
         }
-            
-        public void InitStep(int index)
+
+        public void InitStep(int index, bool approach = false)
         {
             if (!waypoints.IsValidIndex(index))
             {
@@ -121,16 +121,15 @@ namespace IngameScript
 
             if (index == waypoints.Count - 1)
             {
-                if (prog.config.CruiseOffsetSideDist > 0)
+                if (!approach && prog.config.CruiseOffsetSideDist > 0)
                 {
                     targetOffset += Vector3D.CalculatePerpendicularVector(step.Target - shipController.GetPosition()) * prog.config.CruiseOffsetSideDist;
                 }
-                if (prog.config.CruiseOffsetDist > 0)
+                if (!approach && prog.config.CruiseOffsetDist > 0)
                 {
                     targetOffset += (step.Target - shipController.GetPosition()).SafeNormalize() * -prog.config.CruiseOffsetDist;
                 }
             }
-
             started = true;
             currentStep = index;
             if (step.StopAtWaypoint || index == waypoints.Count - 1)
