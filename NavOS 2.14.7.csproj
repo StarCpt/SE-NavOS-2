@@ -59,17 +59,9 @@
     <Compile Include="JitAim.cs" />
     <Compile Include="Navigation\VariableThrustController.cs" />
     <Compile Include="Profiler.cs" />
-    <Compile Include="MDK\Bootstrapper.cs" />
-    <AdditionalFiles Include="MDK\MDK.options.props">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </AdditionalFiles>
-    <AdditionalFiles Include="MDK\MDK.paths.props">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </AdditionalFiles>
     <Compile Include="Program.cs" />
     <AdditionalFiles Include="Instructions.readme" />
     <AdditionalFiles Include="thumb.png" />
-    <AdditionalFiles Include="MDK\whitelist.cache" />
     <Compile Include="Navigation\Retrograde.cs" />
     <Compile Include="Navigation\SpeedMatch.cs" />
   </ItemGroup>
