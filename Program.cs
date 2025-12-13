@@ -1,4 +1,5 @@
-﻿using Sandbox.Game.EntityComponents;
+﻿// <mdk sortorder="-1" />
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -46,13 +47,14 @@ namespace IngameScript
 
     public partial class Program : MyGridProgram
     {
-        #region mdk preserve
-        //Config is in the CustomData
+#region mdk preserve
+//Config is in the CustomData
 
-        //lcd for logging
-        const string debugLcdName = "debugLcd";
-        const double throttleRt = 0.1;
-        #endregion mdk preserve
+//lcd for logging
+const string debugLcdName = "debugLcd";
+const double throttleRt = 0.1;
+
+#endregion mdk preserve
 
         public NavModeEnum NavMode
         {
