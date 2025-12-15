@@ -92,12 +92,12 @@ namespace IngameScript.Navigation
 
             bool targetReachedDist = displacement.LengthSquared() <= (TARGET_REACHED_DIST * TARGET_REACHED_DIST);
             bool targetReachedSpeed = currentVelocity.LengthSquared() <= (TARGET_REACHED_SPEED * TARGET_REACHED_SPEED);
-            if (targetReachedDist && targetReachedSpeed)
-            {
-                _shipController.DampenersOverride = true;
-                Terminate("Target reached");
-                return;
-            }
+            //if (targetReachedDist && targetReachedSpeed)
+            //{
+            //    _shipController.DampenersOverride = true;
+            //    Terminate("Target reached");
+            //    return;
+            //}
             //else if (targetReachedDist)
             //{
             //    // come to a stop asap
@@ -110,6 +110,12 @@ namespace IngameScript.Navigation
             Vector3D localDisplacement; // local relative pos, we're at 0,0,0
             Vector3D.TransformNormal(ref currentVelocity, ref transposedShipControllerWorldMatrix, out localVelocity);
             Vector3D.TransformNormal(ref displacement, ref transposedShipControllerWorldMatrix, out localDisplacement);
+
+            Dictionary<Direction, List<IMyThrust>> thrusters = _thrustController.Thrusters;
+            MovePerAxis(localVelocity.X, localDisplacement.X, _shipMass, thrusters[Direction.Right], thrusters[Direction.Left], _thrustDirections[(int)Direction.Right], _thrustDirections[(int)Direction.Left]);
+            MovePerAxis(localVelocity.Y, localDisplacement.Y, _shipMass, thrusters[Direction.Up], thrusters[Direction.Down], _thrustDirections[(int)Direction.Up], _thrustDirections[(int)Direction.Down]);
+            MovePerAxis(localVelocity.Z, localDisplacement.Z, _shipMass, thrusters[Direction.Backward], thrusters[Direction.Forward], _thrustDirections[(int)Direction.Backward], _thrustDirections[(int)Direction.Forward]);
+            //return;
 
             double invShipMass = 1.0 / _shipMass;
             double accelRight    = invShipMass * _thrustDirections[(int)Direction.Right];
@@ -142,29 +148,13 @@ namespace IngameScript.Navigation
                 Z = zClosing ? ComputeTimeToDecel(Math.Abs(localVelocity.Z), Math.Abs(localDisplacement.Z), localAccel.Z, localDecel.Z) : float.PositiveInfinity,
             };
 
-            //if (counter % 10 != 0)
-            //{
-            //    return;
-            //}
+            if (counter % 10 != 0)
+            {
+                return;
+            }
 
             int lookAhead = 1;
             Vector3 ticksToDecel = timeToDecel * UPS;
-            ticksToDecel = Vector3.Floor(ticksToDecel);
-
-            float thrustRight    = (localDisplacement.X > 0 && ticksToDecel.X > 0) ? ticksToDecel.X : (localDisplacement.X < 0 && ticksToDecel.X <= 0 ? -ticksToDecel.X : 0);
-            float thrustLeft     = (localDisplacement.X < 0 && ticksToDecel.X > 0) ? ticksToDecel.X : (localDisplacement.X > 0 && ticksToDecel.X <= 0 ? -ticksToDecel.X : 0);
-            float thrustUp       = (localDisplacement.Y > 0 && ticksToDecel.Y > 0) ? ticksToDecel.Y : (localDisplacement.Y < 0 && ticksToDecel.Y <= 0 ? -ticksToDecel.Y : 0);
-            float thrustDown     = (localDisplacement.Y < 0 && ticksToDecel.Y > 0) ? ticksToDecel.Y : (localDisplacement.Y > 0 && ticksToDecel.Y <= 0 ? -ticksToDecel.Y : 0);
-            float thrustBackward = (localDisplacement.Z > 0 && ticksToDecel.Z > 0) ? ticksToDecel.Z : (localDisplacement.Z < 0 && ticksToDecel.Z <= 0 ? -ticksToDecel.Z : 0);
-            float thrustForward  = (localDisplacement.Z < 0 && ticksToDecel.Z > 0) ? ticksToDecel.Z : (localDisplacement.Z > 0 && ticksToDecel.Z <= 0 ? -ticksToDecel.Z : 0);
-
-            Dictionary<Direction, List<IMyThrust>> thrusters = _thrustController.Thrusters;
-            SetThrustRatio(thrusters[Direction.Right],    thrustRight);
-            SetThrustRatio(thrusters[Direction.Left],     thrustLeft);
-            SetThrustRatio(thrusters[Direction.Up],       thrustUp);
-            SetThrustRatio(thrusters[Direction.Down],     thrustDown);
-            SetThrustRatio(thrusters[Direction.Backward], thrustBackward);
-            SetThrustRatio(thrusters[Direction.Forward],  thrustForward);
 
             Vector3D accel = localVelocity - lastLocalVelocity;
             lastLocalVelocity = localVelocity;
@@ -173,12 +163,67 @@ namespace IngameScript.Navigation
                 $"TicksToDecelX {ticksToDecel.X:0.0000}\n" +
                 $"TicksToDecelY {ticksToDecel.Y:0.0000}\n" +
                 $"TicksToDecelZ {ticksToDecel.Z:0.0000}\n" +
-                $"Displacement {localDisplacement.X:0.00}\n" +
-                $"VMax {GetVMax(Math.Abs(localVelocity.X), Math.Abs(localDisplacement.X), localAccel.X, localDecel.X):0.000}";
+                $"Displacement {localDisplacement.X:0.00}";
         }
 
-        const float UPS = 60;
+        // returns: on target
+        private static bool MovePerAxis(double velocity, double displacement, double shipMass, List<IMyThrust> approachThrusters, List<IMyThrust> stoppingThrusters, double approachThrust, double stoppingThrust)
+        {
+            if (displacement < 0)
+            {
+                velocity = -velocity;
+                displacement = -displacement;
+
+                var tempApproachThrusters = approachThrusters;
+                approachThrusters = stoppingThrusters;
+                stoppingThrusters = tempApproachThrusters;
+
+                var tempApproachAccel = approachThrust;
+                approachThrust = stoppingThrust;
+                stoppingThrust = tempApproachAccel;
+            }
+
+            double approachAccel = approachThrust / shipMass;
+            double stoppingAccel = stoppingThrust / shipMass;
+
+            // apply full accel @ timeStepsToDecel == 2
+            // apply full decel @ timeStepsToDecel == 0
+
+            double accelMulti = 1;
+            bool found = false;
+            for (int i = 0; i < 10; i++)
+            {
+                float secondsToDecel = ComputeTimeToDecel(velocity, displacement, approachAccel * accelMulti, stoppingAccel); // start decel after this amount of time
+                float timeStepsToDecel = secondsToDecel * UPS;
+
+                if (timeStepsToDecel > 1)
+                {
+                    float accelRatio = MathHelper.Clamp(timeStepsToDecel - 1, 0, 1);
+                    accelRatio = (float)(Math.Min(1, accelRatio) * accelMulti);
+                    SetThrustRatio(approachThrusters, accelRatio);
+                    SetThrustRatio(stoppingThrusters, 0);
+                    found = true;
+                    break;
+                }
+
+                accelMulti /= 2;
+            }
+
+            if (!found)
+            {
+                // kill speed
+                float accelRatio = (float)(-velocity * shipMass / approachThrust) * UPS;
+                float decelRatio = (float)(velocity * shipMass / stoppingThrust) * UPS;
+                SetThrustRatio(approachThrusters, accelRatio);
+                SetThrustRatio(stoppingThrusters, decelRatio);
+            }
+
+            return false;
+        }
+
+        const int UPS = 6;
         const float TIME_STEP = 1f / UPS;
+
         private static void SetThrustRatio(List<IMyThrust> thrusters, float percentage)
         {
             // negative values are ok as ThrustOverridePercentage setter clamps it to [0,1]
@@ -196,28 +241,17 @@ namespace IngameScript.Navigation
                 return float.PositiveInfinity;
             }
 
-            // https://math.stackexchange.com/a/2565783
-            //double v1 = velocity;                         // initial velocity
-            //double v2 = 0;                                // final velocity, 0 here since we want to stop at the target
-            //double av2_sq = accel * v2; av2_sq *= av2_sq; // (accel * v2)^2
-            //double dv1_sq = decel * v1; dv1_sq *= dv1_sq; // (decel * v1)^2
-            //double vMax = Math.Sqrt((av2_sq + dv1_sq + (2 * accel * decel * displacement)) / (accel + decel));
-
-            // simplified if v2 == 0
-            //double vMax = Math.Sqrt(((2 * accel * decel * displacement) + (decel * decel * velocity * velocity)) / (accel + decel));
-            double vMax = Math.Sqrt((decel * (velocity * velocity + 2 * accel * displacement)) / (accel + decel));
-
-            double timeToDecel = (vMax - velocity) / accel;
-            return (float)timeToDecel;
-        }
-
-        static double GetVMax(double velocity, double displacement, double accel, double decel)
-        {
-            if (accel == 0 || decel == 0)
+            double initialTimeToStop = 0;
+            if (velocity < 0)
             {
-                return float.PositiveInfinity;
+                initialTimeToStop = -velocity / accel;
+                velocity = 0;
+                displacement += 0.5 * accel * initialTimeToStop * initialTimeToStop;
             }
-            return Math.Sqrt(((2 * accel * decel * displacement) + (decel * decel * velocity * velocity)) / (accel + decel));
+
+            double vMax = Math.Sqrt((decel * (velocity * velocity + 2 * accel * displacement)) / (accel + decel));
+            double timeToDecel = (vMax - velocity) / accel;
+            return (float)(timeToDecel + initialTimeToStop);
         }
 
         private void UpdateLocalThrusts()
