@@ -1,4 +1,5 @@
-﻿using Sandbox.ModAPI.Ingame;
+﻿using IngameScript.Navigation;
+using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +29,7 @@ namespace IngameScript
                 { "calibrateturn", cmd => CommandCalibrateTurnTime() },
                 { "thrust", CommandApplyThrust },
                 { "journey", CommandJourney },
+                { "autopilot", CommandAutopilot },
             };
         }
 
@@ -101,59 +103,12 @@ namespace IngameScript
 
             try
             {
-                double desiredSpeed = double.Parse(cmd[1]);
+                double desiredSpeed;
                 Vector3D target;
-
-                double result;
-                bool distanceCruise;
-                bool containsGps = cmd.Gps.HasValue;
-                if (distanceCruise = double.TryParse(cmd[2], out result))
+                if (TryParseCruiseCommands(cmd, out desiredSpeed, out target))
                 {
-                    target = controller.GetPosition() + (controller.WorldMatrix.Forward * result);
+                    InitRetroCruise(target, desiredSpeed);
                 }
-                else if (containsGps)
-                {
-                    target = cmd.Gps.Value.Position;
-                }
-                else
-                {
-                    try
-                    {
-                        string[] coords = cmd[2].Split(':');
-
-                        double x = double.Parse(coords[0]);
-                        double y = double.Parse(coords[1]);
-                        double z = double.Parse(coords[2]);
-
-                        target = new Vector3D(x, y, z);
-                    }
-                    catch (Exception e)
-                    {
-                        optionalInfo = "Error occurred while parsing coords";
-                        return;
-                    }
-                }
-
-                Vector3D offsetTarget = Vector3D.Zero;
-
-                if (!distanceCruise)
-                {
-                    if (config.CruiseOffsetDist > 0)
-                    {
-                        if (config.CruiseOffsetSideDist == 0)
-                        {
-                            optionalInfo = "Side offset cannot be zero when using offset";
-                            return;
-                        }
-                        offsetTarget += (target - controller.GetPosition()).SafeNormalize() * -config.CruiseOffsetDist;
-                    }
-                    if (config.CruiseOffsetSideDist > 0)
-                    {
-                        offsetTarget += Vector3D.CalculatePerpendicularVector(target - controller.GetPosition()) * config.CruiseOffsetSideDist;
-                    }
-                }
-
-                InitRetroCruise(target + offsetTarget, desiredSpeed);
             }
             catch (Exception e)
             {
@@ -287,6 +242,115 @@ namespace IngameScript
                 InitJourney();
             else if (cruiseController is Journey && !((Journey)cruiseController).HandleJourneyCommand(cmd, out failReason))
                 optionalInfo = failReason;
+        }
+
+        private void CommandAutopilot(CommandLine cmd)
+        {
+            // autopilot <speed> <forward dist in meters>
+            // autopilot <speed> <X:Y:Z>
+            // autopilot <speed> <GPS>
+            if (cmd.Count < 3)
+            {
+                return;
+            }
+
+            AbortNav(false);
+            optionalInfo = "";
+
+            try
+            {
+                double desiredSpeed;
+                Vector3D target;
+                if (TryParseCruiseCommands(cmd, out desiredSpeed, out target))
+                {
+                    InitAutopilot(target, desiredSpeed);
+                }
+            }
+            catch (Exception e)
+            {
+                optionalInfo = e.ToString();
+            }
+        }
+
+        private void InitAutopilot(Vector3D target, double speed, bool saveConfig = true)
+        {
+            NavMode = NavModeEnum.Autopilot;
+            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+            var instance = new Autopilot(controller, thrustController, gyros)
+            {
+                Target = target,
+                MaxSpeed = (float)speed,
+            };
+            cruiseController = instance;
+            cruiseController.CruiseTerminated += CruiseTerminated;
+            config.PersistStateData = $"{NavMode}|{speed}";
+            Storage = target.ToString();
+            if (saveConfig)
+            {
+                SaveConfig();
+            }
+        }
+
+        // works for any command where the args are:
+        // <cmdName> <speed> <forwardDist>
+        // <cmdName> <speed> <X:Y:Z>
+        // <cmdName> <speed> <GPS>
+        private bool TryParseCruiseCommands(CommandLine cmd, out double desiredSpeed, out Vector3D target)
+        {
+            target = Vector3D.Zero;
+            desiredSpeed = double.Parse(cmd[1]);
+
+            double result;
+            bool distanceCruise;
+            bool containsGps = cmd.Gps.HasValue;
+            if (distanceCruise = double.TryParse(cmd[2], out result))
+            {
+                target = controller.GetPosition() + (controller.WorldMatrix.Forward * result);
+            }
+            else if (containsGps)
+            {
+                target = cmd.Gps.Value.Position;
+            }
+            else
+            {
+                try
+                {
+                    string[] coords = cmd[2].Split(':');
+
+                    double x = double.Parse(coords[0]);
+                    double y = double.Parse(coords[1]);
+                    double z = double.Parse(coords[2]);
+
+                    target = new Vector3D(x, y, z);
+                }
+                catch (Exception e)
+                {
+                    optionalInfo = "Error occurred while parsing coords";
+                    return false;
+                }
+            }
+
+            Vector3D offsetTarget = Vector3D.Zero;
+
+            if (!distanceCruise)
+            {
+                if (config.CruiseOffsetDist > 0)
+                {
+                    if (config.CruiseOffsetSideDist == 0)
+                    {
+                        optionalInfo = "Side offset cannot be zero when using offset";
+                        return false;
+                    }
+                    offsetTarget += (target - controller.GetPosition()).SafeNormalize() * -config.CruiseOffsetDist;
+                }
+                if (config.CruiseOffsetSideDist > 0)
+                {
+                    offsetTarget += Vector3D.CalculatePerpendicularVector(target - controller.GetPosition()) * config.CruiseOffsetSideDist;
+                }
+            }
+
+            target += offsetTarget;
+            return true;
         }
 
         private void InitOrient(Vector3D target)

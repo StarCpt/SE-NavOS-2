@@ -33,6 +33,7 @@ namespace IngameScript
         Orient = 6,
         CalibrateTurnTime = 7,
         Journey = 8,
+        Autopilot = 9,
     }
 
     public enum Direction : byte
@@ -52,7 +53,7 @@ namespace IngameScript
 
 //lcd for logging
 const string debugLcdName = "debugLcd";
-const double throttleRt = 0.1;
+const double throttleRt = 1;
 
 #endregion mdk preserve
 
@@ -100,7 +101,7 @@ const double throttleRt = 0.1;
 
         private DateTime bootTime;
         public const string programName = "NavOS";
-        public const string versionStr = "2.14.7";
+        public const string versionStr = "2.15-dev";
 
         public Config config;
 
@@ -206,6 +207,20 @@ const double throttleRt = 0.1;
                         stateStr = mode.ToString();
                     }
                 }
+                else if (mode == NavModeEnum.Autopilot && args.Length >= 2)
+                {
+                    double desiredSpeed;
+                    Vector3D target;
+                    if (double.TryParse(args[1], out desiredSpeed) && Vector3D.TryParse(Storage, out target))
+                    {
+                        InitAutopilot(target, desiredSpeed, false);
+                        stateStr = mode + " " + desiredSpeed;
+                    }
+                    else
+                    {
+                        stateStr = null;
+                    }
+                }
 
                 if (stateStr == null)
                     optionalInfo = $"Failed to restore {mode}";
@@ -264,7 +279,7 @@ const double throttleRt = 0.1;
                 NavMode = NavModeEnum.Sleep;
             }
 
-            if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : 10) == 0)
+            //if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : 10) == 0)
             {
                 WritePbOutput();
             }

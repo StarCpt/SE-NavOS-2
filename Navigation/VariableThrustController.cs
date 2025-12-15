@@ -25,7 +25,7 @@ namespace IngameScript
             }
         }
 
-        public Dictionary<Direction, IList<IMyThrust>> Thrusters { get; }
+        public Dictionary<Direction, List<IMyThrust>> Thrusters { get; }
 
         private float _maxThrustOverrideRatio = 1f;
         private IMyShipController shipController;
@@ -40,9 +40,7 @@ namespace IngameScript
 
         public VariableThrustController(Dictionary<Direction, List<IMyThrust>> thrusters, IMyShipController shipController)
         {
-            this.Thrusters = thrusters.ToDictionary(
-                kv => kv.Key,
-                kv => (IList<IMyThrust>)thrusters[kv.Key].ToArray());
+            this.Thrusters = thrusters;
             this.shipController = shipController;
         }
 

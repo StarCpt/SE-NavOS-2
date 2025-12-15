@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Instructions.readme" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Mal.Mdk2.PbAnalyzers" Version="2.1.14">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

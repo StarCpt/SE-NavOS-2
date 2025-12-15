@@ -10,7 +10,7 @@ namespace IngameScript
 {
     public interface IVariableThrustController : IThrustController
     {
-        Dictionary<Direction, IList<IMyThrust>> Thrusters { get; }
+        Dictionary<Direction, List<IMyThrust>> Thrusters { get; }
         float MaxThrustRatio { get; set; }
         void UpdateThrusts();
     }
