@@ -54,6 +54,7 @@ namespace IngameScript
 //lcd for logging
 const string debugLcdName = "debugLcd";
 const double throttleRt = 1;
+const int printInterval = 10;
 
 #endregion mdk preserve
 
@@ -279,7 +280,7 @@ const double throttleRt = 1;
                 NavMode = NavModeEnum.Sleep;
             }
 
-            //if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : 10) == 0)
+            if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : printInterval) == 0)
             {
                 WritePbOutput();
             }
