@@ -94,7 +94,6 @@ namespace IngameScript
         private float gridMass;
         private float forwardAccel;
         private float forwardAccelPremultiplied; //premultiplied by maxThrustOverrideRatio
-        private float forwardThrustInv;
 
         //updated every 10 ticks
         //how far off the aim is from the desired direction
@@ -405,7 +404,6 @@ namespace IngameScript
         private void UpdateForwardThrustAndAccel()
         {
             float forwardThrust = thrustController.Thrusters[Direction.Forward].Where(t => t.IsWorking).Sum(t => t.MaxEffectiveThrust);
-            forwardThrustInv = 1f / forwardThrust;
             forwardAccel = forwardThrust / gridMass;
             forwardAccelPremultiplied = forwardAccel * MaxThrustRatio;
         }
@@ -469,26 +467,16 @@ namespace IngameScript
                 lastAimDirectionAngleRad = AngleRadiansBetweenVectorAndControllerForward(aimDirection);
             }
 
-            if (lastAimDirectionAngleRad.Value <= OrientToleranceAngleRadians)
+            const float UPS = 6;
+
+            float forwardOverrideRatio = lastAimDirectionAngleRad.Value <= OrientToleranceAngleRadians ? Math.Min(MaxThrustRatio, (float)(perpSpeed / forwardAccel * UPS)) : 0;
+            var forwardThrusters = thrustController.Thrusters[Direction.Forward];
+            for (int i = forwardThrusters.Count - 1; i >= 0; i--)
             {
-                float overrideAmount = MathHelper.Clamp(((float)perpSpeed * 5 * gridMass) * forwardThrustInv, 0, MaxThrustRatio);
-                foreach (var thruster in thrustController.Thrusters[Direction.Forward])
-                {
-                    thruster.ThrustOverridePercentage = overrideAmount;
-                }
-            }
-            else
-            {
-                foreach (var thruster in thrustController.Thrusters[Direction.Forward])
-                {
-                    thruster.ThrustOverride = 0;
-                }
+                forwardThrusters[i].ThrustOverridePercentage = forwardOverrideRatio;
             }
 
-            if (counter10)
-            {
-                ResetThrustOverridesExceptFront();
-            }
+            ResetThrustOverridesExceptFront();
         }
 
         private void OrientAndAccelerate(Vector3D velocity, double velocityLength)
