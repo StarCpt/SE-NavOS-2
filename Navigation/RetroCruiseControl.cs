@@ -293,6 +293,7 @@ namespace IngameScript
                 }
             }
 
+            int repeatCounter = 0;
             Repeat:
 
             if (Stage == RetroCruiseStage.CancelPerpendicularVelocity)
@@ -310,10 +311,16 @@ namespace IngameScript
                 if (counter10 && timeToStartDecel * 0.25 > decelStartMarginSeconds)
                 {
                     Stage = RetroCruiseStage.OrientAndAccelerate;
-                    goto Repeat;
+                    if (repeatCounter == 0)
+                    {
+                        repeatCounter++;
+                        goto Repeat;
+                    }
                 }
-
-                OrientAndDecelerate(mySpeed);
+                else
+                {
+                    OrientAndDecelerate(mySpeed);
+                }
             }
 
             if (Stage == RetroCruiseStage.DecelerateNoOrient)
