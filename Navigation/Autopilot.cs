@@ -209,7 +209,7 @@ namespace IngameScript
 
             double accelMulti;
             double decelInTimeSteps; // start decel in x seconds. debug use only
-            bool shouldAccel = ComputeMaxAxisAccel(velocity, displacement, approachAccel, stoppingAccel, out accelMulti, out decelInTimeSteps);
+            bool shouldAccel = ComputeMaxAxisAccel(velocity, displacement, approachAccel + gravity, stoppingAccel - gravity, out accelMulti, out decelInTimeSteps);
 
             optionalInfo2.AppendLine($"accelMulti: {accelMulti:0.0000}");
             optionalInfo2.AppendLine($"decelInTicks: {decelInTimeSteps:0.00}");
