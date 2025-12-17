@@ -12,7 +12,7 @@ namespace IngameScript
     {
         public event CruiseTerminateEventDelegate CruiseTerminated = delegate { };
 
-        public string Name => nameof(Orient);
+        public string Name => GetType().Name;
         public Vector3D OrientTarget { get; set; }
 
         public Orient(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros, Vector3D target)
