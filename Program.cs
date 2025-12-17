@@ -98,7 +98,7 @@ const int printInterval = 10;
         private WcPbApi wcApi;
         private bool wcApiActive = false;
         private ICruiseController cruiseController;
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
 
         private DateTime bootTime;
         public const string programName = "NavOS";

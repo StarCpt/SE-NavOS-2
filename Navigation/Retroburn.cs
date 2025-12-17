@@ -16,7 +16,7 @@ namespace IngameScript
 
         public override string Name => nameof(Retroburn);
 
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
         private float gridMass;
         private int counter = -1;
 
@@ -24,7 +24,7 @@ namespace IngameScript
             IAimController aimControl,
             IMyShipController controller,
             List<IMyGyro> gyros,
-            IVariableThrustController thrustController)
+            VariableThrustController thrustController)
             : base(aimControl, controller, gyros)
         {
             this.thrustController = thrustController;

@@ -18,7 +18,7 @@ namespace IngameScript
         IAimController aimControl;
         IList<IMyGyro> gyros;
         double decelStartMarginSeconds;
-        IVariableThrustController thrustControl;
+        VariableThrustController thrustControl;
         Program prog;
 
         private ICruiseController cruiseControl;
@@ -31,7 +31,7 @@ namespace IngameScript
             IMyShipController controller,
             IList<IMyGyro> gyros,
             double decelStartMarginSeconds,
-            IVariableThrustController thrustControl,
+            VariableThrustController thrustControl,
             Program program)
         {
             this.aimControl = aimControl;

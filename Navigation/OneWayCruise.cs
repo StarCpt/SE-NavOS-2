@@ -65,7 +65,7 @@ namespace IngameScript
 
             public double maxInitialPerpendicularVelocity = 0.5;
 
-            private IVariableThrustController thrustController;
+            private VariableThrustController thrustController;
 
             //active variables
             private OneWayCruiseStage _stage;
@@ -95,7 +95,7 @@ namespace IngameScript
                 IAimController aimControl,
                 IMyShipController controller,
                 IList<IMyGyro> gyros,
-                IVariableThrustController thrustController)
+                VariableThrustController thrustController)
                 : base(aimControl, controller, gyros)
             {
                 this.Target = target;

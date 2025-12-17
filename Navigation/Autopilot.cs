@@ -18,7 +18,7 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
 
-namespace IngameScript.Navigation
+namespace IngameScript
 {
     public class Autopilot : ICruiseController
     {
@@ -57,10 +57,10 @@ namespace IngameScript.Navigation
         private Vector3D _gravity;
 
         private readonly IMyShipController _shipController;
-        private readonly IVariableThrustController _thrustController;
+        private readonly VariableThrustController _thrustController;
         private readonly List<IMyGyro> _gyros;
 
-        public Autopilot(IMyShipController shipController, IVariableThrustController thrustController, List<IMyGyro> gyros)
+        public Autopilot(IMyShipController shipController, VariableThrustController thrustController, List<IMyGyro> gyros)
         {
             _shipController = shipController;
             _thrustController = thrustController;

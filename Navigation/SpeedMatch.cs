@@ -31,7 +31,7 @@ namespace IngameScript
         private WcPbApi wcApi;
         private IMyTerminalBlock pb;
 
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
         private int counter = 0;
         private Dictionary<MyDetectedEntityInfo, float> threats = new Dictionary<MyDetectedEntityInfo, float>();
         private List<MyDetectedEntityInfo> obstructions = new List<MyDetectedEntityInfo>();
@@ -46,7 +46,7 @@ namespace IngameScript
             WcPbApi wcApi,
             IMyShipController shipController,
             IMyTerminalBlock programmableBlock,
-            IVariableThrustController thrustController)
+            VariableThrustController thrustController)
         {
             this.targetEntityId = targetEntityId;
             this.wcApi = wcApi;

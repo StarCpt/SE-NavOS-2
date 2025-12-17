@@ -80,7 +80,7 @@ namespace IngameScript
         //useful for overestimating stop time and dist for better cruise accuracy
         public double stopTimeAndDistanceMulti = 1.05;
 
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
         private Program program;
         private Config config;
 
@@ -115,7 +115,7 @@ namespace IngameScript
             IAimController aimControl,
             IMyShipController controller,
             IList<IMyGyro> gyros,
-            IVariableThrustController thrustController,
+            VariableThrustController thrustController,
             Program program,
             bool savePersistentData = true)
             : base(aimControl, controller, gyros)
@@ -139,7 +139,7 @@ namespace IngameScript
             IAimController aimControl,
             IMyShipController controller,
             IList<IMyGyro> gyros,
-            IVariableThrustController thrustController,
+            VariableThrustController thrustController,
             Program program,
             RetroCruiseStage stage,
             bool savePersistentData = true)

@@ -10,7 +10,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    public class VariableThrustController : IVariableThrustController, IThrustController
+    public class VariableThrustController
     {
         public float MaxThrustRatio
         {
