@@ -22,12 +22,6 @@ namespace IngameScript
 {
     public class Autopilot : ICruiseController
     {
-        private struct State
-        {
-            public Vector3D? Target;
-            public float MaxSpeed;
-        }
-
         private const double TARGET_REACHED_DIST = 0.05;
         private const double TARGET_REACHED_SPEED = 0.01;
 
@@ -36,13 +30,13 @@ namespace IngameScript
         public string Name => nameof(Autopilot);
         public Vector3D? Target
         {
-            get { return _state.Target; }
-            set { _state.Target = value; }
+            get { return _target; }
+            set { _target = value; }
         }
         public float MaxSpeed
         {
-            get { return _state.MaxSpeed; }
-            set { _state.MaxSpeed = value; }
+            get { return _maxSpeed; }
+            set { _maxSpeed = value; }
         }
         public float MaxThrustRatio
         {
@@ -50,21 +44,18 @@ namespace IngameScript
             set { _thrustController.MaxThrustRatio = value; }
         }
 
-        private State _state;
-        // forward, backward, left, right, up, down
-        private double[] _thrustDirections = new double[6];
+        private Vector3D? _target;
+        private float _maxSpeed;
         private float _shipMass;
         private Vector3D _gravity;
 
         private readonly IMyShipController _shipController;
         private readonly VariableThrustController _thrustController;
-        private readonly List<IMyGyro> _gyros;
 
-        public Autopilot(IMyShipController shipController, VariableThrustController thrustController, List<IMyGyro> gyros)
+        public Autopilot(IMyShipController shipController, VariableThrustController thrustController)
         {
             _shipController = shipController;
             _thrustController = thrustController;
-            _gyros = gyros;
         }
 
         int counter = -1;
@@ -73,8 +64,7 @@ namespace IngameScript
         {
             counter++;
 
-            State state = _state;
-            if (!state.Target.HasValue)
+            if (!_target.HasValue)
             {
                 Terminate("Target is null");
                 return;
@@ -82,7 +72,6 @@ namespace IngameScript
 
             if (counter % 10 == 0)
             {
-                UpdateLocalThrusts();
                 _thrustController.UpdateThrusts();
 
                 // update mass
@@ -102,7 +91,7 @@ namespace IngameScript
                 return;
             }
 
-            if (RunStateless(_shipController, _thrustController, state.Target.Value, state.MaxSpeed, UPS, _shipMass, _gravity))
+            if (RunStateless(_shipController, _thrustController, _target.Value, _maxSpeed, UPS, _shipMass, _gravity))
             {
                 _shipController.DampenersOverride = true;
                 Terminate("Target reached");
@@ -349,21 +338,6 @@ namespace IngameScript
             double vMax = Math.Sqrt((decel * (velocity * velocity + 2 * accel * displacement)) / (accel + decel));
             double timeToDecel = (vMax - velocity) / accel;
             return (timeToDecel + initialTimeToStop);
-        }
-
-        private void UpdateLocalThrusts()
-        {
-            for (int dir = 5; dir >= 0; dir--)
-            {
-                var thrusters = _thrustController.Thrusters[(Direction)dir];
-                double total = 0;
-                for (int i = thrusters.Count - 1; i >= 0; i--)
-                {
-                    var thruster = thrusters[i];
-                    total += thruster.IsWorking ? thruster.MaxEffectiveThrust : 0;
-                }
-                _thrustDirections[dir] = total;
-            }
         }
 
         public void AppendStatus(StringBuilder strb)

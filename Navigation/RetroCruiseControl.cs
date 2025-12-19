@@ -230,7 +230,7 @@ namespace IngameScript
             {
                 ResetGyroOverride();
                 thrustController.ResetThrustOverrides();
-                TurnOnAllThrusters();
+                thrustController.TurnOnAllThrusters();
                 UpdateThrustAndAccel();
             }
 
@@ -408,13 +408,6 @@ namespace IngameScript
             var backThrusts = thrustController.Thrusters[Direction.Backward];
             for (int i = backThrusts.Count - 1; i >= 0; i--)
                 backThrusts[i].ThrustOverride = 0;
-        }
-
-        public void TurnOnAllThrusters()
-        {
-            foreach (var thrusters in thrustController.Thrusters.Values)
-                for (int i = thrusters.Count - 1; i >= 0; i--)
-                    thrusters[i].Enabled = true;
         }
 
         private void SetDampenerState(bool enabled) => ShipController.DampenersOverride = enabled;
@@ -677,7 +670,7 @@ namespace IngameScript
         public void Terminate(string reason)
         {
             thrustController.ResetThrustOverrides();
-            TurnOnAllThrusters();
+            thrustController.TurnOnAllThrusters();
 
             ResetGyroOverride();
 

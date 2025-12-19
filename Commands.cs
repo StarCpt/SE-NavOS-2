@@ -275,7 +275,7 @@ namespace IngameScript
         {
             NavMode = NavModeEnum.Autopilot;
             thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
-            var instance = new Autopilot(controller, thrustController, gyros)
+            var instance = new Autopilot(controller, thrustController)
             {
                 Target = target,
                 MaxSpeed = (float)speed,

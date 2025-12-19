@@ -25,5 +25,11 @@ namespace IngameScript
             strb.Append(minutes).Append(":").Append(totalSeconds.ToString("00.0"));
             return strb;
         }
+
+        public static Vector3D Normalize(ref Vector3D vec, out double length)
+        {
+            length = vec.Length();
+            return vec / length;
+        }
     }
 }
