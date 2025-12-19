@@ -83,6 +83,7 @@ namespace IngameScript
             if (counter % 10 == 0)
             {
                 UpdateLocalThrusts();
+                _thrustController.UpdateThrusts();
 
                 // update mass
                 _shipMass = _shipController.CalculateShipMass().PhysicalMass;
@@ -126,10 +127,12 @@ namespace IngameScript
                 return; 
             }
 
+            Vector3D maxLocalClosingVelocity = Vector3D.Abs(Vector3D.Normalize(localDisplacement)) * state.MaxSpeed;
+
             Dictionary<Direction, List<IMyThrust>> thrusters = _thrustController.Thrusters;
-            MovePerAxis(localVelocity.X, localDisplacement.X, _shipMass, thrusters[Direction.Right],    thrusters[Direction.Left],    _thrustDirections[(int)Direction.Right],    _thrustDirections[(int)Direction.Left],    localGravity.X);
-            MovePerAxis(localVelocity.Y, localDisplacement.Y, _shipMass, thrusters[Direction.Up],       thrusters[Direction.Down],    _thrustDirections[(int)Direction.Up],       _thrustDirections[(int)Direction.Down],    localGravity.Y);
-            MovePerAxis(localVelocity.Z, localDisplacement.Z, _shipMass, thrusters[Direction.Backward], thrusters[Direction.Forward], _thrustDirections[(int)Direction.Backward], _thrustDirections[(int)Direction.Forward], localGravity.Z);
+            MovePerAxis(localVelocity.X, localDisplacement.X, _shipMass, thrusters[Direction.Right],    thrusters[Direction.Left],    _thrustDirections[(int)Direction.Right],    _thrustDirections[(int)Direction.Left],    localGravity.X, maxLocalClosingVelocity.X);
+            MovePerAxis(localVelocity.Y, localDisplacement.Y, _shipMass, thrusters[Direction.Up],       thrusters[Direction.Down],    _thrustDirections[(int)Direction.Up],       _thrustDirections[(int)Direction.Down],    localGravity.Y, maxLocalClosingVelocity.Y);
+            MovePerAxis(localVelocity.Z, localDisplacement.Z, _shipMass, thrusters[Direction.Backward], thrusters[Direction.Forward], _thrustDirections[(int)Direction.Backward], _thrustDirections[(int)Direction.Forward], localGravity.Z, maxLocalClosingVelocity.Z);
 
             //Program.optionalInfo =
             //    $"DisplacementX {localDisplacement.X:0.0000}\n" +
@@ -152,7 +155,11 @@ namespace IngameScript
         //static StringBuilder optionalInfo2 = new StringBuilder();
 
         // returns: on target
-        private static void MovePerAxis(double velocity, double displacement, double shipMass, List<IMyThrust> approachThrusters, List<IMyThrust> stoppingThrusters, double approachThrust, double stoppingThrust, double gravity)
+        private static void MovePerAxis(
+            double velocity, double displacement, double shipMass,
+            List<IMyThrust> approachThrusters, List<IMyThrust> stoppingThrusters,
+            double approachThrust, double stoppingThrust,
+            double gravity, double maxClosingVelocity)
         {
             if (displacement < 0)
             {
@@ -235,9 +242,18 @@ namespace IngameScript
             //totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
             //totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
 
+            // only accelRatio or decelRatio may be nonzero per axis, both may be zero but not nonzero.
             double minRatio = Math.Min(totalAccelRatio, totalDecelRatio);
             totalAccelRatio -= minRatio;
             totalDecelRatio -= minRatio;
+
+            double nextVelocity = velocity + (totalAccelRatio * approachAccel - totalDecelRatio * stoppingAccel) * TIME_STEP;
+            if (nextVelocity > maxClosingVelocity)
+            {
+                double excessVelocity = nextVelocity - maxClosingVelocity;
+                totalAccelRatio -= (excessVelocity * UPS) / approachAccel;
+                totalDecelRatio += -totalAccelRatio;
+            }
 
             SetThrustRatio(approachThrusters, (float)totalAccelRatio);
             SetThrustRatio(stoppingThrusters, (float)totalDecelRatio);

@@ -48,6 +48,9 @@ Example: Cruise 500 15000:70000:17000
 Same as above for GPSes
 Example: Cruise 500 GPS:target:15000:70000:17000:FFFFFF
 
+# Autopilot <DesiredSpeed> <GPS>
+Travels to the target gps (plus configured offsets) using omnidirectional thrust without turning the ship.
+
 # Retro/Retrograde
 Points the ship in the opposite direction of travel
 
