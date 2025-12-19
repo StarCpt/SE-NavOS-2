@@ -1,10 +1,8 @@
-﻿using Sandbox.Game.Entities;
-using Sandbox.ModAPI.Ingame;
+﻿using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using VRage;
 using VRageMath;
 
@@ -17,6 +15,7 @@ namespace IngameScript
             get { return _maxThrustOverrideRatio; }
             set
             {
+                value = MathHelper.Saturate(value);
                 if (_maxThrustOverrideRatio != value)
                 {
                     _maxThrustOverrideRatio = value;
@@ -30,13 +29,8 @@ namespace IngameScript
         private float _maxThrustOverrideRatio = 1f;
         private IMyShipController shipController;
 
-        //inverse total directional thrust force
-        private float forwardThrustInv = 0;
-        private float backThrustInv = 0;
-        private float leftThrustInv = 0;
-        private float rightThrustInv = 0;
-        private float upThrustInv = 0;
-        private float downThrustInv = 0;
+        private double rightThrust, leftThrust, upThrust, downThrust, backThrust, forwardThrust;
+        private float rightThrustInv, leftThrustInv, upThrustInv, downThrustInv, backThrustInv, forwardThrustInv;
 
         public VariableThrustController(Dictionary<Direction, List<IMyThrust>> thrusters, IMyShipController shipController)
         {
@@ -44,32 +38,68 @@ namespace IngameScript
             this.shipController = shipController;
         }
 
+        public double GetThrustInDirection(Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.Right: return rightThrust;
+                case Direction.Left: return leftThrust;
+                case Direction.Up: return upThrust;
+                case Direction.Down: return downThrust;
+                case Direction.Backward: return backThrust;
+                case Direction.Forward: return forwardThrust;
+                default: throw new ArgumentException("Invalid direction.");
+            }
+        }
+
         public void UpdateThrusts()
         {
-            foreach (var kv in Thrusters)
+            for (Direction dir = 0; dir < Direction.MAX_COUNT; dir++)
             {
-                float total = 0;
-                for (int i = 0; i < kv.Value.Count; i++)
+                var thrusters = Thrusters[dir];
+                double total = 0;
+                for (int i = thrusters.Count - 1; i >= 0; i--)
                 {
-                    total += kv.Value[i].MaxEffectiveThrust;
+                    var thruster = thrusters[i];
+                    if (thruster.IsWorking)
+                    {
+                        total += thruster.MaxEffectiveThrust;
+                    }
                 }
-                total = 1.0f / total;
-                switch (kv.Key)
+                switch (dir)
                 {
-                    case Direction.Forward: forwardThrustInv = total; break;
-                    case Direction.Backward: backThrustInv = total; break;
-                    case Direction.Left: leftThrustInv = total; break;
-                    case Direction.Right: rightThrustInv = total; break;
-                    case Direction.Up: upThrustInv = total; break;
-                    case Direction.Down: downThrustInv = total; break;
+                    case Direction.Forward:
+                        forwardThrust = total;
+                        forwardThrustInv = (float)(1.0 / total);
+                        break;
+                    case Direction.Backward:
+                        backThrust = total;
+                        backThrustInv = (float)(1.0 / total);
+                        break;
+                    case Direction.Left:
+                        leftThrust = total;
+                        leftThrustInv = (float)(1.0 / total);
+                        break;
+                    case Direction.Right:
+                        rightThrust = total;
+                        rightThrustInv = (float)(1.0 / total);
+                        break;
+                    case Direction.Up:
+                        upThrust = total;
+                        upThrustInv = (float)(1.0 / total);
+                        break;
+                    case Direction.Down:
+                        downThrust = total;
+                        downThrustInv = (float)(1.0 / total);
+                        break;
                 }
             }
         }
 
-        public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float tolerance)
+        public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float tolerance, float ups = 1)
         {
             Vector3 localVelocity = Vector3D.TransformNormal(shipVelocity, MatrixD.Transpose(shipController.WorldMatrix));
-            Vector3 thrustAmount = localVelocity * gridMass;
+            Vector3 thrustAmount = localVelocity * gridMass * ups;
             SetThrusts(thrustAmount, tolerance);
         }
 
@@ -107,7 +137,7 @@ namespace IngameScript
         public void ResetThrustOverrides()
         {
             foreach (var kv in Thrusters)
-                for (int i = 0; i < kv.Value.Count; i++)
+                for (int i = kv.Value.Count - 1; i >= 0; i--)
                     kv.Value[i].ThrustOverride = 0;
         }
     }

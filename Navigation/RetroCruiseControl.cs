@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using VRage;
 using VRageMath;
 
@@ -635,38 +634,27 @@ namespace IngameScript
 
         private Vector3D decelNoOrientAimDir;
 
-        private void DecelerateNoOrient(double mySpeed)
+        private void DecelerateNoOrient(Vector3D velocity, double velocityLength)
         {
-            if (mySpeed <= completionShipSpeed)
+            Orient(decelNoOrientAimDir);
+
+            if (!counter10)
             {
-                Stage = RetroCruiseStage.Complete;
                 return;
             }
-
-            Orient(decelNoOrientAimDir);
 
             if (!lastAimDirectionAngleRad.HasValue)
             {
                 lastAimDirectionAngleRad = AngleRadiansBetweenVectorAndControllerForward(decelNoOrientAimDir);
             }
 
-            bool approaching = Vector3D.Dot(targetDirection, myVelocity) > 0;
-            
-            if (!approaching)
+            const float UPS = 6;
+
+            if (Autopilot.RunStateless(ShipController, thrustController, Target, (float)DesiredSpeed, UPS, gridMass, gravityAtPos))
             {
-                DampenAllDirections(myVelocity * 50, 0);
+                Stage = RetroCruiseStage.Complete;
                 return;
             }
-
-            //float overrideAmount = Math.Min(((float)-timeToStartDecel + MaxThrustRatio), MaxThrustRatio);
-            //
-            //var foreThrusts = thrustController.Thrusters[Direction.Forward];
-            //for (int i = 0; i < foreThrusts.Count; i++)
-            //    foreThrusts[i].ThrustOverridePercentage = overrideAmount;
-            //
-            //DampenSidewaysToZero(-(targetDirection - myVelocity - myVelocity));
-
-            DampenAllDirections(-(targetDirection - myVelocity - myVelocity));
         }
 
         private double AngleRadiansBetweenVectorAndControllerForward(Vector3D vec)

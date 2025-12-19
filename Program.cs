@@ -43,7 +43,8 @@ namespace IngameScript
         Left,
         Right,
         Up,
-        Down
+        Down,
+        MAX_COUNT,
     }
 
     public partial class Program : MyGridProgram
