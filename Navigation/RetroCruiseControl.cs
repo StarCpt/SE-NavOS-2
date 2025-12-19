@@ -54,7 +54,7 @@ namespace IngameScript
                 if (thrustController.MaxThrustRatio != value)
                 {
                     thrustController.MaxThrustRatio = value;
-                    UpdateForwardThrustAndAccel();
+                    UpdateThrustAndAccel();
                 }
             }
         }
@@ -90,13 +90,14 @@ namespace IngameScript
         private bool counter30 = false;
 
         //updated every 30 ticks
-        private float gridMass;
         private float forwardAccel;
         private float forwardAccelPremultiplied; //premultiplied by maxThrustOverrideRatio
 
         //updated every 10 ticks
         //how far off the aim is from the desired direction
         private double? lastAimDirectionAngleRad = null;
+        private float gridMass;
+        private Vector3D gravityAtPos;
         private double estimatedTimeOfArrival;
 
         // accel stage variables
@@ -133,7 +134,7 @@ namespace IngameScript
             Stage = RetroCruiseStage.None;
             gridMass = controller.CalculateShipMass().PhysicalMass;
 
-            UpdateForwardThrustAndAccel();
+            UpdateThrustAndAccel();
         }
 
         public RetroCruiseControl(
@@ -163,7 +164,7 @@ namespace IngameScript
         {
             strb.Append("\n-- Cruise Status --\n\n");
 
-            if (timeToStartDecel < 0 || Vector3D.Dot(myVelocity, targetDirection) < 0)
+            if (timeToStartDecel < 0 || Vector3D.Dot(ShipController.GetShipVelocities().LinearVelocity, targetDirection) < 0)
             {
                 strb.Append($"!! Overshoot Warning !! ({GetShortDistance(currentStopDist - distanceToTarget)})\n\n");
             }
@@ -233,36 +234,29 @@ namespace IngameScript
             counter++;
             counter10 = counter % 10 == 0;
             counter30 = counter % 30 == 0;
-            bool counter60 = counter % 60 == 0;
 
             if (Stage == RetroCruiseStage.None)
             {
                 ResetGyroOverride();
                 thrustController.ResetThrustOverrides();
                 TurnOnAllThrusters();
-                thrustController.UpdateThrusts();
+                UpdateThrustAndAccel();
             }
 
             if (counter10)
             {
                 lastAimDirectionAngleRad = null;
-
+                gridMass = ShipController.CalculateShipMass().PhysicalMass;
+                gravityAtPos = ShipController.GetNaturalGravity();
                 SetDampenerState(false);
             }
             if (counter30)
             {
-                UpdateForwardThrustAndAccel();
-                gravityAtPos = ShipController.GetNaturalGravity();
-            }
-            if (counter60)
-            {
-                gridMass = ShipController.CalculateShipMass().PhysicalMass;
-                thrustController.UpdateThrusts();
+                UpdateThrustAndAccel();
             }
 
             Vector3D myPosition = ShipController.GetPosition();
             myVelocity = ShipController.GetShipVelocities().LinearVelocity + gravityAtPos;
-            lastMySpeed = mySpeed;
             mySpeed = myVelocity.Length();
 
             targetDirection = Target - myPosition;//aka relativePosition
@@ -301,7 +295,7 @@ namespace IngameScript
 
             if (Stage == RetroCruiseStage.CancelPerpendicularVelocity)
             {
-                CancelPerpendicularVelocity();
+                CancelPerpendicularVelocity(myVelocity);
             }
 
             if (Stage == RetroCruiseStage.OrientAndAccelerate)
@@ -405,10 +399,10 @@ namespace IngameScript
             }
         }
 
-        private void UpdateForwardThrustAndAccel()
+        private void UpdateThrustAndAccel()
         {
-            float forwardThrust = thrustController.Thrusters[Direction.Forward].Where(t => t.IsWorking).Sum(t => t.MaxEffectiveThrust);
-            forwardAccel = forwardThrust / gridMass;
+            thrustController.UpdateThrusts();
+            forwardAccel = (float)(thrustController.GetThrustInDirection(Direction.Forward) / gridMass);
             forwardAccelPremultiplied = forwardAccel * MaxThrustRatio;
         }
 
@@ -427,9 +421,9 @@ namespace IngameScript
 
         public void TurnOnAllThrusters()
         {
-            foreach (var kv in thrustController.Thrusters)
-                for (int i = 0; i < kv.Value.Count; i++)
-                    kv.Value[i].Enabled = true;
+            foreach (var thrusters in thrustController.Thrusters.Values)
+                for (int i = thrusters.Count - 1; i >= 0; i--)
+                    thrusters[i].Enabled = true;
         }
 
         private void SetDampenerState(bool enabled) => ShipController.DampenersOverride = enabled;
@@ -453,9 +447,9 @@ namespace IngameScript
             }
         }
 
-        private void CancelPerpendicularVelocity()
+        private void CancelPerpendicularVelocity(Vector3D velocity)
         {
-            Vector3D aimDirection = -Vector3D.ProjectOnPlane(ref myVelocity, ref targetDirection);
+            Vector3D aimDirection = -Vector3D.ProjectOnPlane(ref velocity, ref targetDirection);
             double perpSpeed = aimDirection.Length();
 
             if (perpSpeed <= maxInitialPerpendicularVelocity)
@@ -497,8 +491,7 @@ namespace IngameScript
                 return;
             }
 
-            Vector3D aimDirection = normalizedTargetDirection;
-
+            Vector3D aimDirection = targetDirection;
             Orient(aimDirection);
 
             if (!counter10)
