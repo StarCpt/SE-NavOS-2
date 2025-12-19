@@ -99,12 +99,17 @@ namespace IngameScript
         private double? lastAimDirectionAngleRad = null;
         private double estimatedTimeOfArrival;
 
+        // accel stage variables
+        private double lastForwardSpeedDuringAccel;
+        private double lastForwardThrustRatioDuringAccel;
+
         //updated every tick
         private double accelTime, timeToStartDecel, cruiseTime, currentStopDist, actualStopTime, distanceToTarget, vmax, mySpeed, lastMySpeed;
         private float lastThrustRatio;
         private Vector3D myVelocity, targetDirection, normalizedTargetDirection, gravityAtPos;
         private bool noSpeedOnStart;
         private RetroCruiseStage initialStage = RetroCruiseStage.None;
+
         private bool savePersistentData;
 
         public RetroCruiseControl(
@@ -436,6 +441,11 @@ namespace IngameScript
             SetDampenerState(false);
             lastAimDirectionAngleRad = null;
             decelerating = false;
+
+            // reset stage-specific variables
+            lastForwardSpeedDuringAccel = 0;
+            lastForwardThrustRatioDuringAccel = 0;
+
             if (savePersistentData)
             {
                 config.PersistStateData = $"{NavModeEnum.Cruise}|{DesiredSpeed}|{Stage}";
@@ -496,13 +506,12 @@ namespace IngameScript
                 return;
             }
 
-            // ups for code below
-            const float UPS = 6;
-
             if (!lastAimDirectionAngleRad.HasValue)
             {
                 lastAimDirectionAngleRad = AngleRadiansBetweenVectorAndControllerForward(aimDirection);
             }
+
+            const float UPS = 6;
 
             if (lastAimDirectionAngleRad.Value <= OrientToleranceAngleRadians)
             {
@@ -516,16 +525,13 @@ namespace IngameScript
                 float thrustRatio;
                 if (forwardSpeed > 0 && config.MaintainDesiredSpeed)
                 {
-                    // TODO: lastMySpeed is from 1 tick ago, but it should be from (60 / UPS) ticks ago
-                    // FIX!!!!!
-                    // lastThrustRatio is set in this method so it's fine... for now
-                    double actualAccel = (forwardSpeed - lastMySpeed) * UPS;
-                    double expectedAccel = forwardAccel * lastThrustRatio;
+                    double actualAccel = (forwardSpeed - lastForwardSpeedDuringAccel) * UPS;
+                    double expectedAccel = forwardAccel * lastForwardThrustRatioDuringAccel;
 
                     double speedDelta = DesiredSpeed - forwardSpeed;
                     double desiredAccel = speedDelta + (expectedAccel - actualAccel);
                     double desiredThrustRatio = desiredAccel / forwardAccel * UPS;
-                    thrustRatio = MathHelper.Min(MaxThrustRatio, (float)desiredThrustRatio);
+                    thrustRatio = Math.Min(MaxThrustRatio, (float)desiredThrustRatio);
                 }
                 else if (desiredSpeedReached)
                 {
@@ -545,15 +551,11 @@ namespace IngameScript
                     forwardThrusters[i].ThrustOverridePercentage = thrustRatio;
                 }
 
-                lastThrustRatio = thrustRatio;
-
-                if (counter30)
-                {
-                    ResetBackThrusts(); // why is this here?
-                }
-
                 Vector3D velocityPerpendicularToTarget = Vector3D.ProjectOnPlane(ref velocity, ref targetDirection);
                 DampenSidewaysToZero(velocityPerpendicularToTarget, UPS);
+
+                lastForwardSpeedDuringAccel = forwardSpeed;
+                lastForwardThrustRatioDuringAccel = thrustRatio;
 
                 return;
             }
