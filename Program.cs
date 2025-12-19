@@ -103,7 +103,7 @@ const int printInterval = 10;
 
         private DateTime bootTime;
         public const string programName = "NavOS";
-        public const string versionStr = "2.15-alpha1";
+        public const string versionStr = "2.15-alpha2";
 
         public Config config;
 
