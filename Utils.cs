@@ -26,6 +26,11 @@ namespace IngameScript
             return strb;
         }
 
+        public static string MinuteAndSeconds(double totalSeconds)
+        {
+            return $"{(int)totalSeconds / 60}:{totalSeconds % 60:00.0}";
+        }
+
         public static Vector3D Normalize(ref Vector3D vec, out double length)
         {
             length = vec.Length();
