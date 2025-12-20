@@ -251,9 +251,9 @@ namespace IngameScript
             //totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
 
             // only accelRatio or decelRatio may be nonzero per axis, both may be zero but not nonzero.
-            double minRatio = Math.Min(totalAccelRatio, totalDecelRatio);
-            totalAccelRatio -= minRatio;
-            totalDecelRatio -= minRatio;
+            double minThrust = Math.Min(totalAccelRatio * approachThrust, totalDecelRatio * stoppingThrust);
+            totalAccelRatio -= minThrust / approachThrust;
+            totalDecelRatio -= minThrust / stoppingThrust;
 
             double nextVelocity = velocity + (totalAccelRatio * approachAccel - totalDecelRatio * stoppingAccel) * timeStep;
             if (nextVelocity > maxClosingVelocity)
