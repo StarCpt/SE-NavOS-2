@@ -83,9 +83,9 @@ namespace IngameScript
             SaveConfig();
 
             if (cruiseController is SpeedMatch)
-                thrustController.MaxThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)result;
+                thrustController.MaxForwardThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)result;
             else
-                thrustController.MaxThrustRatio = (float)result;
+                thrustController.MaxForwardThrustRatio = (float)result;
 
             optionalInfo = $"New thrust ratio set to {result:0.##}";
         }
@@ -118,7 +118,7 @@ namespace IngameScript
         private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.RetroCruiseStage stage = RetroCruiseControl.RetroCruiseStage.None, bool saveConfig = true)
         {
             NavMode = NavModeEnum.Cruise;
-            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+            thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
             {
                 decelStartMarginSeconds = config.Ship180TurnTimeSeconds * 1.5,
@@ -148,7 +148,7 @@ namespace IngameScript
             AbortNav(false);
             optionalInfo = "";
             NavMode = NavModeEnum.Retroburn;
-            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+            thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new Retroburn(aimController, controller, gyros, thrustController);
             cruiseController.CruiseTerminated += CruiseTerminated;
             config.PersistStateData = $"{NavModeEnum.Retroburn}";
@@ -274,7 +274,7 @@ namespace IngameScript
         private void InitAutopilot(Vector3D target, double speed, bool saveConfig = true)
         {
             NavMode = NavModeEnum.Autopilot;
-            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+            thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             var instance = new Autopilot(controller, thrustController)
             {
                 Target = target,
@@ -375,7 +375,7 @@ namespace IngameScript
         private void InitSpeedMatch(long targetId)
         {
             NavMode = NavModeEnum.SpeedMatch;
-            thrustController.MaxThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)config.MaxThrustOverrideRatio;
+            thrustController.MaxForwardThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)config.MaxThrustOverrideRatio;
             cruiseController = new SpeedMatch(targetId, wcApi, controller, Me, thrustController);
             cruiseController.CruiseTerminated += CruiseTerminated;
             config.PersistStateData = $"{NavModeEnum.SpeedMatch}|{targetId}";
@@ -385,7 +385,7 @@ namespace IngameScript
         private void InitJourney()
         {
             NavMode = NavModeEnum.Journey;
-            thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
+            thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
             cruiseController.CruiseTerminated += CruiseTerminated;
         }

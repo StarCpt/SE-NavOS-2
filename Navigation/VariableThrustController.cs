@@ -10,24 +10,25 @@ namespace IngameScript
 {
     public class VariableThrustController
     {
-        public float MaxThrustRatio
+        public float MaxForwardThrustRatio
         {
-            get { return _maxThrustOverrideRatio; }
+            get { return _maxForwardThrustRatio; }
             set
             {
                 value = MathHelper.Saturate(value);
-                if (_maxThrustOverrideRatio != value)
+                if (_maxForwardThrustRatio != value)
                 {
-                    _maxThrustOverrideRatio = value;
+                    _maxForwardThrustRatio = value;
                     UpdateThrusts();
                 }
             }
         }
+        public IMyShipController ShipController => _shipController;
 
         public readonly Dictionary<Direction, List<IMyThrust>> Thrusters;
 
-        private float _maxThrustOverrideRatio = 1f;
-        private readonly IMyShipController shipController;
+        private float _maxForwardThrustRatio = 1f;
+        private readonly IMyShipController _shipController;
         private readonly List<IMyThrust>[] _thrusters;
 
         private readonly double[] _thrusts = new double[6];
@@ -36,7 +37,7 @@ namespace IngameScript
         public VariableThrustController(Dictionary<Direction, List<IMyThrust>> thrusters, IMyShipController shipController)
         {
             this.Thrusters = thrusters;
-            this.shipController = shipController;
+            this._shipController = shipController;
             _thrusters = new[]
             {
                 thrusters[(Direction)0],
@@ -82,7 +83,7 @@ namespace IngameScript
 
         public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float tolerance, float ups = 1)
         {
-            Vector3 localVelocity = Vector3D.TransformNormal(shipVelocity, MatrixD.Transpose(shipController.WorldMatrix));
+            Vector3 localVelocity = Vector3D.TransformNormal(shipVelocity, MatrixD.Transpose(_shipController.WorldMatrix));
             SetThrusts(localVelocity * gridMass * ups, tolerance);
         }
 
@@ -98,7 +99,7 @@ namespace IngameScript
             SetSideThrusts(left, right, up, down);
 
             backward *= backThrustInv;
-            forward = Math.Min(forward * forwardThrustInv, MaxThrustRatio);
+            forward = Math.Min(forward * forwardThrustInv, MaxForwardThrustRatio);
 
             var backwardThrusters = _thrusters[(int)Direction.Backward];
             for (int i = backwardThrusters.Count - 1; i >= 0; i--)
@@ -168,5 +169,7 @@ namespace IngameScript
                 }
             }
         }
+
+        public void SetDampenerState(bool enabled) => _shipController.DampenersOverride = enabled;
     }
 }

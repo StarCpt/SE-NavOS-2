@@ -4,6 +4,7 @@ Config (In the customdata of the pb - Must recompile when modified!!):
 # PersistStateData: DO NOT TOUCH
 
 # MaxThrustOverrideRatio: Amount of forward thrust to use. 0 = 0%, 0.5 = 50%, 1 = 100%
+Important: In gravity forward override ratio may exceed this value.
 
 # IgnoreMaxThrustForSpeedMatch: Ignore the above config if using SpeedMatch if true.
 

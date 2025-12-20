@@ -44,12 +44,12 @@ namespace IngameScript
             public double DesiredSpeed { get; }
             public float MaxThrustRatio
             {
-                get { return thrustController.MaxThrustRatio; }
+                get { return thrustController.MaxForwardThrustRatio; }
                 set
                 {
-                    if (thrustController.MaxThrustRatio != value)
+                    if (thrustController.MaxForwardThrustRatio != value)
                     {
-                        thrustController.MaxThrustRatio = value;
+                        thrustController.MaxForwardThrustRatio = value;
                         UpdateThrustAndAccel();
                     }
                 }

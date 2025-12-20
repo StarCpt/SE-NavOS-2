@@ -45,18 +45,7 @@ namespace IngameScript
         }
         public Vector3D Target { get; }
         public double DesiredSpeed { get; }
-        public float MaxThrustRatio
-        {
-            get { return thrustController.MaxThrustRatio; }
-            set
-            {
-                if (thrustController.MaxThrustRatio != value)
-                {
-                    thrustController.MaxThrustRatio = value;
-                    UpdateThrustAndAccel();
-                }
-            }
-        }
+        public float MaxThrustRatio => thrustController.MaxForwardThrustRatio;
 
         /// <summary>
         /// what speed end cruise routine during deceleration
@@ -621,7 +610,7 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
                 return;
             }
 
-            if (Autopilot.RunStateless(ShipController, thrustController, Target, (float)DesiredSpeed, UPS, gridMass, naturalGravity))
+            if (Autopilot.RunStateless(thrustController, Target, (float)DesiredSpeed, UPS, gridMass, naturalGravity))
             {
                 Stage = RetroCruiseStage.Complete;
                 return;
@@ -646,7 +635,7 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
 
             const float UPS = 6;
 
-            if (Autopilot.RunStateless(ShipController, thrustController, Target, (float)DesiredSpeed, UPS, gridMass, naturalGravity))
+            if (Autopilot.RunStateless(thrustController, Target, (float)DesiredSpeed, UPS, gridMass, naturalGravity))
             {
                 Stage = RetroCruiseStage.Complete;
                 return;
