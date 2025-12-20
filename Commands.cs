@@ -301,32 +301,17 @@ namespace IngameScript
 
             double result;
             bool distanceCruise;
-            bool containsGps = cmd.Gps.HasValue;
             if (distanceCruise = double.TryParse(cmd[2], out result))
             {
                 target = controller.GetPosition() + (controller.WorldMatrix.Forward * result);
             }
-            else if (containsGps)
+            else if (cmd.Gps.HasValue)
             {
                 target = cmd.Gps.Value.Position;
             }
             else
             {
-                try
-                {
-                    string[] coords = cmd[2].Split(':');
-
-                    double x = double.Parse(coords[0]);
-                    double y = double.Parse(coords[1]);
-                    double z = double.Parse(coords[2]);
-
-                    target = new Vector3D(x, y, z);
-                }
-                catch (Exception e)
-                {
-                    optionalInfo = "Error occurred while parsing coords";
-                    return false;
-                }
+                return false;
             }
 
             bool useOffsets = true; // true by default
