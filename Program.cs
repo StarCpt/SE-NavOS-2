@@ -50,11 +50,12 @@ namespace IngameScript
     public partial class Program : MyGridProgram
     {
 #region mdk preserve
+
 //Config is in the CustomData
 
 //lcd for logging
 const string debugLcdName = "debugLcd";
-const double throttleRt = 1;
+const double throttleRt = 0.1;
 const int printInterval = 10;
 
 #endregion mdk preserve

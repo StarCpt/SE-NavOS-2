@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Instructions.readme" />
+    <AdditionalFiles Include="Instructions.readme" />
   </ItemGroup>
 
   <ItemGroup>
