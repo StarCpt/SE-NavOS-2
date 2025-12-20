@@ -329,10 +329,18 @@ namespace IngameScript
                 }
             }
 
-            Vector3D offsetTarget = Vector3D.Zero;
-
-            if (!distanceCruise)
+            bool useOffsets = true; // true by default
+            if (cmd.Count >= 4 && cmd[3].ToLower() == "false")
             {
+                useOffsets = false;
+            }
+
+            useOffsets = useOffsets && !distanceCruise; // distance cruise doesn't use offsets
+
+            if (useOffsets)
+            {
+                Vector3D offsetTarget = Vector3D.Zero;
+
                 if (config.CruiseOffsetDist > 0)
                 {
                     if (config.CruiseOffsetSideDist == 0)
@@ -342,13 +350,15 @@ namespace IngameScript
                     }
                     offsetTarget += (target - controller.GetPosition()).SafeNormalize() * -config.CruiseOffsetDist;
                 }
+
                 if (config.CruiseOffsetSideDist > 0)
                 {
                     offsetTarget += Vector3D.CalculatePerpendicularVector(target - controller.GetPosition()) * config.CruiseOffsetSideDist;
                 }
+
+                target += offsetTarget;
             }
 
-            target += offsetTarget;
             return true;
         }
 

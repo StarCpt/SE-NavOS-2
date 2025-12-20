@@ -40,16 +40,15 @@ Commands:
 Automatically travels the set distance in the forward direction of the ship controller (cockpit) at the desired speed.
 Example: Cruise 500 20000
 
-# Cruise <DesiredSpeed> <X:Y:Z>
-Automatically travels to the set coordinates (plus the offset in config) at the desired speed.
-Example: Cruise 500 15000:70000:17000
-
-# Cruise <DesiredSpeed> <GPS>
+# Cruise <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
 Same as above for GPSes
-Example: Cruise 500 GPS:target:15000:70000:17000:FFFFFF
+If UseCruiseOffset is unset, cruise offsets are enabled by default
+Example 1: Cruise 500 GPS:target:15000:70000:17000:
+Example 2: Cruise 500 GPS:target:15000:70000:17000: false - won't use cruise offsets
 
-# Autopilot <DesiredSpeed> <GPS>
-Travels to the target gps (plus configured offsets) using omnidirectional thrust without turning the ship.
+# Autopilot <DesiredSpeed> <ForwardDistanceMeters>
+# Autopilot <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
+Travels to the target gps (plus configured offsets) or specified forward distance using omnidirectional thrust without turning the ship.
 
 # Retro/Retrograde
 Points the ship in the opposite direction of travel
