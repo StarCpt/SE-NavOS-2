@@ -244,8 +244,8 @@ namespace IngameScript
             totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
             totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
 
-            totalAccelRatio += MathHelper.Saturate(-gravity / approachAccel);
-            totalDecelRatio += MathHelper.Saturate( gravity / stoppingAccel);
+            totalAccelRatio += approachAccel != 0 ? MathHelper.Saturate(-gravity / approachAccel) : 0;
+            totalDecelRatio += stoppingAccel != 0 ? MathHelper.Saturate(gravity / stoppingAccel) : 0;
 
             //totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
             //totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
@@ -324,7 +324,7 @@ namespace IngameScript
             // assume accel and decel are >= 0
             if (accel == 0 || decel == 0)
             {
-                return double.PositiveInfinity;
+                return 0;
             }
 
             double initialTimeToStop = 0;
