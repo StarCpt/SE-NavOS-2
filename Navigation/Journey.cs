@@ -119,6 +119,10 @@ namespace IngameScript
             var step = waypoints[index];
             Vector3D targetOffset = Vector3D.Zero;
 
+            // limit desired speed to max world speed. apply it here to not save the capped speed
+            // since on a nexus server the player may transition to a zone with different speed cap
+            step.DesiredSpeed = Math.Min(step.DesiredSpeed, prog.GetWorldMaxSpeed());
+
             if (index == waypoints.Count - 1)
             {
                 if (prog.config.CruiseOffsetSideDist > 0)

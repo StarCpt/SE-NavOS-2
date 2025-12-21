@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VRage.Game;
+using VRage.Game.ModAPI.Ingame;
 using VRageMath;
 
 namespace IngameScript
@@ -35,6 +37,11 @@ namespace IngameScript
         {
             length = vec.Length();
             return vec / length;
+        }
+
+        public static double GetWorldMaxSpeed(this Program program)
+        {
+            return program.Me.CubeGrid.GridSizeEnum == MyCubeSize.Large ? program.World.LargeShipMaxSpeed : program.World.SmallShipMaxSpeed;
         }
     }
 }

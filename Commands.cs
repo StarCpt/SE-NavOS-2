@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VRage.Game;
 using VRageMath;
 
 namespace IngameScript
@@ -117,6 +118,7 @@ namespace IngameScript
 
         private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.RetroCruiseStage stage = RetroCruiseControl.RetroCruiseStage.None, bool saveConfig = true)
         {
+            speed = Math.Min(speed, this.GetWorldMaxSpeed());
             NavMode = NavModeEnum.Cruise;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
@@ -273,6 +275,7 @@ namespace IngameScript
 
         private void InitAutopilot(Vector3D target, double speed, bool saveConfig = true)
         {
+            speed = Math.Min(speed, this.GetWorldMaxSpeed());
             NavMode = NavModeEnum.Autopilot;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             var instance = new Autopilot(controller, thrustController)
