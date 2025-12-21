@@ -217,7 +217,6 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
             {
                 ResetGyroOverride();
                 thrustController.ResetThrustOverrides();
-                thrustController.TurnOnAllThrusters();
                 UpdateThrustAndAccel();
             }
 
@@ -659,7 +658,6 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
         public void Terminate(string reason)
         {
             thrustController.ResetThrustOverrides();
-            thrustController.TurnOnAllThrusters();
 
             ResetGyroOverride();
 

@@ -191,18 +191,6 @@ namespace IngameScript
             }
         }
 
-        public void TurnOnAllThrusters()
-        {
-            for (int dir = 5; dir >= 0; dir--)
-            {
-                var thrusters = _thrusters[dir];
-                for (int i = thrusters.Count - 1; i >= 0; i--)
-                {
-                    thrusters[i].Enabled = true;
-                }
-            }
-        }
-
         public void SetDampenerState(bool enabled) => _shipController.DampenersOverride = enabled;
     }
 }

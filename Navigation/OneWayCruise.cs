@@ -146,7 +146,6 @@ namespace IngameScript
                 {
                     ResetGyroOverride();
                     thrustController.ResetThrustOverrides();
-                    thrustController.TurnOnAllThrusters();
                     UpdateThrustAndAccel();
                 }
 
@@ -357,7 +356,6 @@ namespace IngameScript
             public void Terminate(string reason)
             {
                 thrustController.ResetThrustOverrides();
-                thrustController.TurnOnAllThrusters();
 
                 ResetGyroOverride();
 
