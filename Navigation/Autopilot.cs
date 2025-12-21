@@ -53,8 +53,12 @@ namespace IngameScript
             _thrustController = thrustController;
         }
 
-        int counter = -1;
+        public void AppendStatus(StringBuilder strb)
+        {
 
+        }
+
+        int counter = -1;
         public void Run()
         {
             counter++;
@@ -93,11 +97,7 @@ namespace IngameScript
                 return;
             }
 
-            //Program.optionalInfo =
-            //    $"DisplacementX {localDisplacement.X:0.0000}\n" +
-            //    $"DisplacementY {localDisplacement.Y:0.0000}\n" +
-            //    $"DisplacementZ {localDisplacement.Z:0.0000}\n" +
-            //    $"\n{optionalInfo2}";
+            //Program.optionalInfo = optionalInfo2.ToString();
             //optionalInfo2.Clear();
         }
 
@@ -120,7 +120,7 @@ namespace IngameScript
             else if (targetReachedDist)
             {
                 // come to a stop asap
-                thrustController.DampenAllDirections(currentVelocity + (naturalGravity / ups), shipMass, 0, ups);
+                thrustController.DampenAllDirections(currentVelocity, naturalGravity, shipMass, ups);
                 return false;
             }
 
@@ -142,16 +142,6 @@ namespace IngameScript
 
             return false;
         }
-
-        //private static void DampenAllDirectionsFast(Dictionary<Direction, List<IMyThrust>> thrusters, Vector3D localVelocity, double shipMass, double[] thrustDirections)
-        //{
-        //    SetThrustRatio(thrusters[Direction.Right],    (float)(-localVelocity.X * shipMass / thrustDirections[(int)Direction.Right]    * UPS));
-        //    SetThrustRatio(thrusters[Direction.Left],     (float)( localVelocity.X * shipMass / thrustDirections[(int)Direction.Left]     * UPS));
-        //    SetThrustRatio(thrusters[Direction.Up],       (float)(-localVelocity.Y * shipMass / thrustDirections[(int)Direction.Up]       * UPS));
-        //    SetThrustRatio(thrusters[Direction.Down],     (float)( localVelocity.Y * shipMass / thrustDirections[(int)Direction.Down]     * UPS));
-        //    SetThrustRatio(thrusters[Direction.Backward], (float)(-localVelocity.Z * shipMass / thrustDirections[(int)Direction.Backward] * UPS));
-        //    SetThrustRatio(thrusters[Direction.Forward],  (float)( localVelocity.Z * shipMass / thrustDirections[(int)Direction.Forward]  * UPS));
-        //}
 
         //static StringBuilder optionalInfo2 = new StringBuilder();
 
@@ -182,15 +172,18 @@ namespace IngameScript
                 maxDecelRatio = tempMaxAccelRatio;
             }
 
-            approachThrust *= maxAccelRatio;
-            stoppingThrust *= maxDecelRatio;
-
             double approachAccel = approachThrust / shipMass;
             double stoppingAccel = stoppingThrust / shipMass;
 
             double accelMulti;
             double decelInTimeSteps; // start decel in x seconds. debug use only
+            // use pre-maxRatio multiplied accel/decel
             bool shouldAccel = ComputeMaxAxisAccel(velocity, displacement, approachAccel + gravity, stoppingAccel - gravity, ups, out accelMulti, out decelInTimeSteps);
+
+            approachThrust *= maxAccelRatio;
+            stoppingThrust *= maxDecelRatio;
+            approachAccel *= maxAccelRatio;
+            stoppingAccel *= maxDecelRatio;
 
             //optionalInfo2.AppendLine($"velocity: {velocity:0.0000}");
             //optionalInfo2.AppendLine($"displacement: {displacement:0.0000}");
@@ -229,7 +222,7 @@ namespace IngameScript
 
                 double decelRatio;
                 double targetDecelTime = desiredStopTime - timeStep;
-                if (targetDecelTime <= 0)
+                if (targetDecelTime <= 0 || desiredStopDist <= 0.0001)
                 {
                     decelRatio = (velocity * shipMass / stoppingThrust) * ups;
                     //optionalInfo2.AppendLine("decel (full)");
@@ -244,27 +237,39 @@ namespace IngameScript
                 totalDecelRatio += decelRatio;
             }
 
-            totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
-            totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
+            // reject nonsense values
+            totalAccelRatio = MathHelper.Max(0, totalAccelRatio);
+            totalDecelRatio = MathHelper.Max(0, totalDecelRatio);
 
-            totalAccelRatio += approachAccel != 0 ? MathHelper.Saturate(-gravity / approachAccel) : 0;
-            totalDecelRatio += stoppingAccel != 0 ? MathHelper.Saturate(gravity / stoppingAccel) : 0;
+            // gravity compensation
+            {
+                totalAccelRatio += approachAccel != 0 && gravity < 0 ? (-gravity / approachAccel) : 0;
+                totalDecelRatio += stoppingAccel != 0 && gravity > 0 ? ( gravity / stoppingAccel) : 0;
 
-            //totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
-            //totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
+                // not sure if I have to clamp again?
+                //totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
+                //totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
+            }
 
-            // only accelRatio or decelRatio may be nonzero per axis, both may be zero but not nonzero.
+            // speed limiter
+            {
+                double nextVelocity = velocity + ((totalAccelRatio * approachAccel) - (totalDecelRatio * stoppingAccel) + gravity) * timeStep;
+                if (nextVelocity > maxClosingVelocity)
+                {
+                    double excessVelocity = nextVelocity - maxClosingVelocity;
+                    totalAccelRatio -= (excessVelocity * ups) / approachAccel;
+                    totalDecelRatio -= totalAccelRatio * approachAccel / stoppingAccel;
+                }
+            }
+
+            // reject nonsense values (again)
+            totalAccelRatio = MathHelper.Max(0, totalAccelRatio);
+            totalDecelRatio = MathHelper.Max(0, totalDecelRatio);
+
+            // cancel out thrust if both accel and decel are nonzero
             double minThrust = Math.Min(totalAccelRatio * approachThrust, totalDecelRatio * stoppingThrust);
             totalAccelRatio -= minThrust / approachThrust;
             totalDecelRatio -= minThrust / stoppingThrust;
-
-            double nextVelocity = velocity + (totalAccelRatio * approachAccel - totalDecelRatio * stoppingAccel) * timeStep;
-            if (nextVelocity > maxClosingVelocity)
-            {
-                double excessVelocity = nextVelocity - maxClosingVelocity;
-                totalAccelRatio -= (excessVelocity * ups) / approachAccel;
-                totalDecelRatio += -totalAccelRatio;
-            }
 
             totalAccelRatio *= maxAccelRatio;
             totalDecelRatio *= maxDecelRatio;
@@ -327,10 +332,15 @@ namespace IngameScript
 
         private static double ComputeTimeToDecel(double velocity, double displacement, double accel, double decel)
         {
-            // assume accel and decel are >= 0
-            if (accel == 0 || decel == 0)
+            if (decel <= 0)
             {
                 return 0;
+            }
+
+            if (accel <= 0)
+            {
+                double stopDist = (velocity * velocity) / (decel * 2);
+                return (displacement - stopDist) / velocity;
             }
 
             double initialTimeToStop = 0;
@@ -344,11 +354,6 @@ namespace IngameScript
             double vMax = Math.Sqrt((decel * (velocity * velocity + 2 * accel * displacement)) / (accel + decel));
             double timeToDecel = (vMax - velocity) / accel;
             return (timeToDecel + initialTimeToStop);
-        }
-
-        public void AppendStatus(StringBuilder strb)
-        {
-
         }
 
         public void Abort() => Terminate("Aborted");

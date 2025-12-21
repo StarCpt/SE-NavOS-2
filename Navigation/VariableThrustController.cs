@@ -81,10 +81,43 @@ namespace IngameScript
             }
         }
 
-        public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float tolerance, float ups = 1)
+        public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float ups)
         {
             Vector3 localVelocity = Vector3D.TransformNormal(shipVelocity, MatrixD.Transpose(_shipController.WorldMatrix));
-            SetThrusts(localVelocity * gridMass * ups, tolerance);
+            SetThrusts(localVelocity * gridMass * ups, 0);
+        }
+
+        public void DampenAllDirections(Vector3D shipVelocity, Vector3D gravity, float gridMass, float ups)
+        {
+            MatrixD transposedShipMatrix = MatrixD.Transpose(_shipController.WorldMatrix);
+            Vector3D localVelocity, localGravity;
+            Vector3D.TransformNormal(ref shipVelocity, ref transposedShipMatrix, out localVelocity);
+            Vector3D.TransformNormal(ref gravity, ref transposedShipMatrix, out localGravity);
+
+            Vector3 thrustAmount = (localVelocity * ups + localGravity) * gridMass;
+            float right    = thrustAmount.X < 0 ? -thrustAmount.X : 0;
+            float left     = thrustAmount.X > 0 ? thrustAmount.X : 0;
+            float up       = thrustAmount.Y < 0 ? -thrustAmount.Y : 0;
+            float down     = thrustAmount.Y > 0 ? thrustAmount.Y : 0;
+            float backward = thrustAmount.Z < 0 ? -thrustAmount.Z : 0;
+            float forward  = thrustAmount.Z > 0 ? thrustAmount.Z : 0;
+
+            SetSideThrusts(left, right, up, down);
+
+            backward *= backThrustInv;
+            forward = Math.Min(forward * forwardThrustInv, _maxForwardThrustRatio + Math.Max(0, (float)localGravity.Z * gridMass * forwardThrustInv));
+
+            var backwardThrusters = _thrusters[(int)Direction.Backward];
+            for (int i = backwardThrusters.Count - 1; i >= 0; i--)
+            {
+                backwardThrusters[i].ThrustOverridePercentage = backward;
+            }
+
+            var forwardThrusters = _thrusters[(int)Direction.Forward];
+            for (int i = forwardThrusters.Count - 1; i >= 0; i--)
+            {
+                forwardThrusters[i].ThrustOverridePercentage = forward;
+            }
         }
 
         public void SetThrusts(Vector3 thrustAmount, float tolerance)
@@ -99,7 +132,7 @@ namespace IngameScript
             SetSideThrusts(left, right, up, down);
 
             backward *= backThrustInv;
-            forward = Math.Min(forward * forwardThrustInv, MaxForwardThrustRatio);
+            forward = Math.Min(forward * forwardThrustInv, _maxForwardThrustRatio);
 
             var backwardThrusters = _thrusters[(int)Direction.Backward];
             for (int i = backwardThrusters.Count - 1; i >= 0; i--)
@@ -110,7 +143,7 @@ namespace IngameScript
             var forwardThrusters = _thrusters[(int)Direction.Forward];
             for (int i = forwardThrusters.Count - 1; i >= 0; i--)
             {
-               forwardThrusters[i].ThrustOverridePercentage = forward;
+                forwardThrusters[i].ThrustOverridePercentage = forward;
             }
         }
 

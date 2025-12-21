@@ -55,7 +55,7 @@ namespace IngameScript
                 const float UPS = 6;
 
                 if (Vector3D.Dot(-shipVelocityNormalized, ShipController.WorldMatrix.Forward) > 0.999999 || velocitySq <= terminateSpeed * terminateSpeed)
-                    thrustController.DampenAllDirections(shipVelocity, gridMass, 0, UPS - 1); // UPS - 1 to smooth the decel
+                    thrustController.DampenAllDirections(shipVelocity, gridMass, UPS - 1); // UPS - 1 to smooth the decel
                 else
                     thrustController.ResetThrustOverrides();
             }
