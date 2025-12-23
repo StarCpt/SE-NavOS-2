@@ -91,7 +91,7 @@ namespace IngameScript
 
         public static void GetRotationAnglesSimultaneous(Vector3D desiredForwardVector, MatrixD worldMatrix, out double yaw, out double pitch, out double roll)
         {
-            desiredForwardVector = SafeNormalize(desiredForwardVector);
+            desiredForwardVector = Utils.SafeNormalize(desiredForwardVector);
 
             MatrixD transposedWm;
             MatrixD.Transpose(ref worldMatrix, out transposedWm);
@@ -109,7 +109,7 @@ namespace IngameScript
                 return;
             }
 
-            axis = SafeNormalize(axis);
+            axis = Utils.SafeNormalize(axis);
             yaw = -axis.Y * angle;
             pitch = axis.X * angle;
             roll = -axis.Z * angle;
@@ -127,17 +127,6 @@ namespace IngameScript
             gyro.Yaw = (float)transformedRotationVec.Y;
             gyro.Roll = (float)transformedRotationVec.Z;
             gyro.GyroOverride = true;
-        }
-
-        public static Vector3D SafeNormalize(Vector3D a)
-        {
-            if (Vector3D.IsZero(a))
-                return Vector3D.Zero;
-
-            if (Vector3D.IsUnit(ref a))
-                return a;
-
-            return Vector3D.Normalize(a);
         }
 
         public void Orient(Vector3D forward, IMyGyro gyro, MatrixD refMatrix)
