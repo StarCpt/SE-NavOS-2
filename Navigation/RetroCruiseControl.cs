@@ -486,8 +486,8 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
                 float thrustRatio;
                 if (forwardSpeed > 0 && config.MaintainDesiredSpeed)
                 {
-                    double actualAccel = (forwardSpeed - lastForwardSpeedDuringAccel) * UPS;
-                    double expectedAccel = forwardAccel * lastForwardThrustRatioDuringAccel;
+                    double actualAccel = forwardSpeed - lastForwardSpeedDuringAccel;
+                    double expectedAccel = (forwardAccel * lastForwardThrustRatioDuringAccel) / UPS;
 
                     double speedDelta = DesiredSpeed - forwardSpeed;
                     double desiredAccel = speedDelta + (expectedAccel - actualAccel);
