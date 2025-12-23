@@ -361,7 +361,6 @@ namespace IngameScript
         public void Terminate(string reason)
         {
             _thrustController.ResetThrustOverrides();
-            _thrustController.SetDampenerState(true);
             CruiseTerminated.Invoke(this, reason);
         }
     }
