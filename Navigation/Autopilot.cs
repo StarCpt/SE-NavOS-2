@@ -55,7 +55,7 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            strb.Append("\n-- Autopilot Status --\n\n");
+            strb.Append("\n-- Autopilot Status --\n");
 
             double targetDist = Vector3D.Distance(_target ?? Vector3D.Zero, _shipController.WorldAABB.Center);
             strb.Append($"Max Speed: {_maxSpeed:0.#} m/s\n");
