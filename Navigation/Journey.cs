@@ -146,7 +146,7 @@ namespace IngameScript
             }
             else
             {
-                cruiseControl = new Program.OneWayCruise(step.Target + targetOffset, step.DesiredSpeed, aimControl, shipController, gyros, thrustControl);
+                cruiseControl = new OneWayCruise(step.Target + targetOffset, step.DesiredSpeed, aimControl, shipController, gyros, thrustControl);
             }
             cruiseControl.CruiseTerminated += OnCruiseTerminated;
             SavePersistantData();

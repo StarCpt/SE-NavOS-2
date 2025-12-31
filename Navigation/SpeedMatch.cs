@@ -10,7 +10,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    internal class SpeedMatch : ICruiseController
+    public class SpeedMatch : ICruiseController
     {
         private enum TargetAcquisitionMode
         {
