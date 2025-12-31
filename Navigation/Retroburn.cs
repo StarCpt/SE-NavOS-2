@@ -51,8 +51,12 @@ namespace IngameScript
             Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
             double velocitySq = shipVelocity.LengthSquared();
 
+            Vector3D gravity = ShipController.GetNaturalGravity();
+
             if (velocitySq > ORIENT_SPEED_THRESHOLD * ORIENT_SPEED_THRESHOLD)
                 Orient(-shipVelocity);
+            else if (gravity != Vector3D.Zero)
+                Orient(-gravity);
             else
                 ResetGyroOverride();
 
@@ -62,8 +66,8 @@ namespace IngameScript
 
                 const float UPS = 6;
 
-                if (Vector3D.Dot(-shipVelocity.SafeNormalize(), ShipController.WorldMatrix.Forward) > 0.999999 || velocitySq <= ORIENT_SPEED_THRESHOLD * ORIENT_SPEED_THRESHOLD)
-                    thrustController.DampenAllDirections(shipVelocity, gridMass, UPS - 1); // UPS - 1 to smooth the decel
+                if (Vector3D.Dot(-shipVelocity.SafeNormalize(), ShipController.WorldMatrix.Forward) > 0.9999 || velocitySq <= ORIENT_SPEED_THRESHOLD * ORIENT_SPEED_THRESHOLD)
+                    thrustController.DampenAllDirections(shipVelocity, gravity, gridMass, UPS - 1); // UPS - 1 to smooth the decel
                 else
                     thrustController.ResetThrustOverrides();
             }
