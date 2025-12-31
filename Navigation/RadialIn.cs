@@ -42,6 +42,7 @@ namespace IngameScript
             if (_gravity == Vector3D.Zero)
             {
                 Terminate("No gravity detected");
+                return;
             }
 
             Orient(_gravity);
