@@ -57,6 +57,12 @@ Points the ship in the opposite direction of travel
 # Prograde
 Points the ship in the direction of travel
 
+# RadialIn
+Orient toward natural gravity
+
+# RadialOut
+Orient away from natural gravity
+
 # Retroburn
 Points the ship to retrograde and stops the ship
 

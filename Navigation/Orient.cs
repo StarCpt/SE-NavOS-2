@@ -12,20 +12,25 @@ namespace IngameScript
     {
         public event CruiseTerminateEventDelegate CruiseTerminated = delegate { };
 
-        public string Name => GetType().Name;
-        public Vector3D OrientTarget { get; set; }
+        public virtual string Name => "Orient";
+        private Vector3D _targetPos;
 
         public Orient(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros, Vector3D target)
             : base(aimControl, controller, gyros)
         {
-            this.OrientTarget = target;
+            this._targetPos = target;
+        }
+
+        protected Orient(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
+            : base(aimControl, controller, gyros)
+        {
         }
 
         public void AppendStatus(StringBuilder strb) { }
 
         public virtual void Run()
         {
-            Orient(OrientTarget - ShipController.GetPosition());
+            Orient(_targetPos - ShipController.GetPosition());
         }
 
         public void Terminate(string reason)

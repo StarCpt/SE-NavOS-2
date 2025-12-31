@@ -21,19 +21,21 @@ using VRageMath;
 
 namespace IngameScript
 {
-    public enum NavModeEnum //legacy: all future modes should be a class derived from ICruiseController
+    public enum NavModeEnum
     {
-        Sleep = -1,
-        Idle = 0,
-        Cruise = 1,
-        Retrograde = 2,
-        Prograde = 3,
-        SpeedMatch = 4,
-        Retroburn = 5,
-        Orient = 6,
+        Sleep             = -1,
+        Idle              = 0,
+        Cruise            = 1,
+        Retrograde        = 2,
+        Prograde          = 3,
+        SpeedMatch        = 4,
+        Retroburn         = 5,
+        Orient            = 6,
         CalibrateTurnTime = 7,
-        Journey = 8,
-        Autopilot = 9,
+        Journey           = 8,
+        Autopilot         = 9,
+        RadialIn          = 10,
+        RadialOut         = 11,
     }
 
     public enum Direction : byte
@@ -92,7 +94,7 @@ const int printInterval = 10;
         private static StringBuilder debug;
         private IMyTextSurface debugLcd;
         private IMyTextSurface consoleLcd;
-        private int counter = -1;
+        public static int counter = -1;
         private int idleCounter = 0;
 
         private IAimController aimController;
@@ -223,6 +225,16 @@ const int printInterval = 10;
                     {
                         stateStr = null;
                     }
+                }
+                else if (mode == NavModeEnum.RadialIn)
+                {
+                    InitRadialIn();
+                    stateStr = mode.ToString();
+                }
+                else if (mode == NavModeEnum.RadialOut)
+                {
+                    InitRadialOut();
+                    stateStr = mode.ToString();
                 }
 
                 if (stateStr == null)

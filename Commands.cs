@@ -30,6 +30,8 @@ namespace IngameScript
                 { "thrust", CommandApplyThrust },
                 { "journey", CommandJourney },
                 { "autopilot", CommandAutopilot },
+                { "radialin", _ => InitRadialIn() },
+                { "radialout", _ => InitRadialOut() },
             };
         }
 
@@ -376,6 +378,28 @@ namespace IngameScript
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
             cruiseController.CruiseTerminated += CruiseTerminated;
+        }
+
+        private void InitRadialIn()
+        {
+            AbortNav(false);
+            optionalInfo = "";
+            NavMode = NavModeEnum.RadialIn;
+            cruiseController = new RadialIn(aimController, controller, gyros);
+            cruiseController.CruiseTerminated += CruiseTerminated;
+            config.PersistStateData = NavModeEnum.RadialIn.ToString();
+            SaveConfig();
+        }
+
+        private void InitRadialOut()
+        {
+            AbortNav(false);
+            optionalInfo = "";
+            NavMode = NavModeEnum.RadialOut;
+            cruiseController = new RadialOut(aimController, controller, gyros);
+            cruiseController.CruiseTerminated += CruiseTerminated;
+            config.PersistStateData = NavModeEnum.RadialOut.ToString();
+            SaveConfig();
         }
     }
 }
