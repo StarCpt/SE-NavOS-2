@@ -318,8 +318,8 @@ namespace IngameScript
                 // >0 if closing, <0 ottherwise
                 double forwardSpeed = velocityLength > 0 ? (velocityLength * Vector3D.Dot(velocity / velocityLength, targetDir)) : 0;
 
-                double actualAccel = (forwardSpeed - lastForwardSpeedDuringAccel) * UPS;
-                double expectedAccel = forwardAccel * lastForwardThrustRatioDuringAccel;
+                double actualAccel = forwardSpeed - lastForwardSpeedDuringAccel;
+                double expectedAccel = (forwardAccel * lastForwardThrustRatioDuringAccel) / UPS;
 
                 double speedDelta = DesiredSpeed - forwardSpeed;
                 double desiredAccel = speedDelta + (expectedAccel - actualAccel);
