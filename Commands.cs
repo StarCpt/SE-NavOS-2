@@ -24,14 +24,14 @@ namespace IngameScript
                 { "retro", cmd => CommandRetrograde() }, { "retrograde", cmd => CommandRetrograde() },
                 { "retroburn", cmd => CommandRetroburn() },
                 { "prograde", cmd => CommandPrograde() },
+                { "radialin", _ => CommandRadialIn() },
+                { "radialout", _ => CommandRadialOut() },
                 { "match", cmd => CommandSpeedMatch() }, { "speedmatch", cmd => CommandSpeedMatch() },
                 { "orient", CommandOrient },
                 { "calibrateturn", cmd => CommandCalibrateTurnTime() },
                 { "thrust", CommandApplyThrust },
                 { "journey", CommandJourney },
                 { "autopilot", CommandAutopilot },
-                { "radialin", _ => InitRadialIn() },
-                { "radialout", _ => InitRadialOut() },
             };
         }
 
@@ -57,6 +57,7 @@ namespace IngameScript
         {
             AbortNav(false);
             LoadConfig(true);
+            optionalInfo = "Config reloaded";
         }
 
         private void CommandSetThrustRatio(CommandLine cmd)
@@ -85,7 +86,7 @@ namespace IngameScript
             config.MaxThrustOverrideRatio = result;
             SaveConfig();
 
-            if (cruiseController is SpeedMatch)
+            if (CruiseController is SpeedMatch)
                 thrustController.MaxForwardThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)result;
             else
                 thrustController.MaxForwardThrustRatio = (float)result;
@@ -95,13 +96,13 @@ namespace IngameScript
 
         private void CommandCruise(CommandLine cmd)
         {
+            AbortNav(false);
+            optionalInfo = "";
+
             if (cmd.Count < 3)
             {
                 return;
             }
-
-            AbortNav(false);
-            optionalInfo = "";
 
             try
             {
@@ -121,13 +122,12 @@ namespace IngameScript
         private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.RetroCruiseStage stage = RetroCruiseControl.RetroCruiseStage.None, bool saveConfig = true)
         {
             speed = Math.Min(speed, this.GetWorldMaxSpeed());
-            NavMode = NavModeEnum.Cruise;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
-            cruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
+            NavMode = NavModeEnum.Cruise;
+            CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
             {
                 decelStartMarginSeconds = config.Ship180TurnTimeSeconds * 1.5,
             };
-            cruiseController.CruiseTerminated += CruiseTerminated;
             config.PersistStateData = $"{NavModeEnum.Cruise}|{speed}|{stage}";
             Storage = target.ToString();
             if (saveConfig)
@@ -141,8 +141,7 @@ namespace IngameScript
             AbortNav(false);
             optionalInfo = "";
             NavMode = NavModeEnum.Retrograde;
-            cruiseController = new Retrograde(aimController, controller, gyros);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            CruiseController = new Retrograde(aimController, controller, gyros);
             config.PersistStateData = $"{NavModeEnum.Retrograde}";
             SaveConfig();
         }
@@ -151,10 +150,9 @@ namespace IngameScript
         {
             AbortNav(false);
             optionalInfo = "";
-            NavMode = NavModeEnum.Retroburn;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
-            cruiseController = new Retroburn(aimController, controller, gyros, thrustController);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            NavMode = NavModeEnum.Retroburn;
+            CruiseController = new Retroburn(aimController, controller, gyros, thrustController);
             config.PersistStateData = $"{NavModeEnum.Retroburn}";
             SaveConfig();
         }
@@ -164,9 +162,28 @@ namespace IngameScript
             AbortNav(false);
             optionalInfo = "";
             NavMode = NavModeEnum.Prograde;
-            cruiseController = new Prograde(aimController, controller, gyros);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            CruiseController = new Prograde(aimController, controller, gyros);
             config.PersistStateData = $"{NavModeEnum.Prograde}";
+            SaveConfig();
+        }
+
+        private void CommandRadialIn()
+        {
+            AbortNav(false);
+            optionalInfo = "";
+            NavMode = NavModeEnum.RadialIn;
+            CruiseController = new RadialIn(aimController, controller, gyros);
+            config.PersistStateData = NavModeEnum.RadialIn.ToString();
+            SaveConfig();
+        }
+
+        private void CommandRadialOut()
+        {
+            AbortNav(false);
+            optionalInfo = "";
+            NavMode = NavModeEnum.RadialOut;
+            CruiseController = new RadialOut(aimController, controller, gyros);
+            config.PersistStateData = NavModeEnum.RadialOut.ToString();
             SaveConfig();
         }
 
@@ -206,8 +223,7 @@ namespace IngameScript
             AbortNav(false);
             optionalInfo = "";
             NavMode = NavModeEnum.CalibrateTurnTime;
-            cruiseController = new CalibrateTurnTime(config, aimController, controller, gyros);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            CruiseController = new CalibrateTurnTime(config, aimController, controller, gyros);
             config.PersistStateData = $"{NavModeEnum.CalibrateTurnTime}";
             SaveConfig();
         }
@@ -243,7 +259,7 @@ namespace IngameScript
             string failReason;
             if (cmd.Matches(1, "load"))
                 InitJourney();
-            else if (cruiseController is Journey && !((Journey)cruiseController).HandleJourneyCommand(cmd, out failReason))
+            else if (CruiseController is Journey && !((Journey)CruiseController).HandleJourneyCommand(cmd, out failReason))
                 optionalInfo = failReason;
         }
 
@@ -278,15 +294,13 @@ namespace IngameScript
         private void InitAutopilot(Vector3D target, double speed, bool saveConfig = true)
         {
             speed = Math.Min(speed, this.GetWorldMaxSpeed());
-            NavMode = NavModeEnum.Autopilot;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
-            var instance = new Autopilot(controller, thrustController)
+            NavMode = NavModeEnum.Autopilot;
+            CruiseController = new Autopilot(controller, thrustController)
             {
                 Target = target,
                 MaxSpeed = (float)speed,
             };
-            cruiseController = instance;
-            cruiseController.CruiseTerminated += CruiseTerminated;
             config.PersistStateData = $"{NavMode}|{speed}";
             Storage = target.ToString();
             if (saveConfig)
@@ -355,8 +369,7 @@ namespace IngameScript
         private void InitOrient(Vector3D target)
         {
             NavMode = NavModeEnum.Orient;
-            cruiseController = new Orient(aimController, controller, gyros, target);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            CruiseController = new Orient(aimController, controller, gyros, target);
             config.PersistStateData = $"{NavModeEnum.Orient}";
             Storage = target.ToString();
             SaveConfig();
@@ -364,42 +377,18 @@ namespace IngameScript
 
         private void InitSpeedMatch(long targetId)
         {
-            NavMode = NavModeEnum.SpeedMatch;
             thrustController.MaxForwardThrustRatio = config.IgnoreMaxThrustForSpeedMatch ? 1f : (float)config.MaxThrustOverrideRatio;
-            cruiseController = new SpeedMatch(targetId, wcApi, controller, Me, thrustController);
-            cruiseController.CruiseTerminated += CruiseTerminated;
+            NavMode = NavModeEnum.SpeedMatch;
+            CruiseController = new SpeedMatch(targetId, wcApi, controller, Me, thrustController);
             config.PersistStateData = $"{NavModeEnum.SpeedMatch}|{targetId}";
             SaveConfig();
         }
 
         private void InitJourney()
         {
-            NavMode = NavModeEnum.Journey;
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
-            cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
-            cruiseController.CruiseTerminated += CruiseTerminated;
-        }
-
-        private void InitRadialIn()
-        {
-            AbortNav(false);
-            optionalInfo = "";
-            NavMode = NavModeEnum.RadialIn;
-            cruiseController = new RadialIn(aimController, controller, gyros);
-            cruiseController.CruiseTerminated += CruiseTerminated;
-            config.PersistStateData = NavModeEnum.RadialIn.ToString();
-            SaveConfig();
-        }
-
-        private void InitRadialOut()
-        {
-            AbortNav(false);
-            optionalInfo = "";
-            NavMode = NavModeEnum.RadialOut;
-            cruiseController = new RadialOut(aimController, controller, gyros);
-            cruiseController.CruiseTerminated += CruiseTerminated;
-            config.PersistStateData = NavModeEnum.RadialOut.ToString();
-            SaveConfig();
+            NavMode = NavModeEnum.Journey;
+            CruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
         }
     }
 }

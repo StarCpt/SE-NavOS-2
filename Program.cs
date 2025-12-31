@@ -69,15 +69,40 @@ const int printInterval = 10;
             {
                 if (_navMode != value)
                 {
-                    var old = _navMode;
+                    var oldValue = _navMode;
                     _navMode = value;
-                    NavModeChanged(old, value);
+                    NavModeChanged(oldValue, value);
                 }
             }
         }
+
+        private ICruiseController CruiseController
+        {
+            get { return _cruiseController; }
+            set
+            {
+                if (_cruiseController != value)
+                {
+                    var oldValue = _cruiseController;
+                    var newValue = value;
+
+                    if (oldValue != null)
+                    {
+                        oldValue.CruiseTerminated -= OnCruiseTerminated;
+                    }
+
+                    _cruiseController = newValue;
+
+                    if (newValue != null)
+                    {
+                        newValue.CruiseTerminated += OnCruiseTerminated;
+                    }
+                }
+            }
+        }
+
         private NavModeEnum _navMode = NavModeEnum.Idle;
-        public bool IsNavIdle => NavMode == NavModeEnum.Idle;
-        public bool IsNavSleep => NavMode == NavModeEnum.Sleep;
+        private ICruiseController _cruiseController = null;
 
         private Dictionary<Direction, List<IMyThrust>> thrusters = new Dictionary<Direction, List<IMyThrust>>
         {
@@ -101,7 +126,6 @@ const int printInterval = 10;
         private Profiler profiler;
         private WcPbApi wcApi;
         private bool wcApiActive = false;
-        private ICruiseController cruiseController;
         private VariableThrustController thrustController;
 
         private DateTime bootTime;
@@ -204,11 +228,10 @@ const int printInterval = 10;
                     int step;
                     if (int.TryParse(args[1], out step))
                     {
-                        NavMode = NavModeEnum.Journey;
                         thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
-                        cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
-                        cruiseController.CruiseTerminated += CruiseTerminated;
-                        ((Journey)cruiseController).InitStep(step);
+                        NavMode = NavModeEnum.Journey;
+                        CruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
+                        ((Journey)CruiseController).InitStep(step);
                         stateStr = mode.ToString();
                     }
                 }
@@ -228,12 +251,12 @@ const int printInterval = 10;
                 }
                 else if (mode == NavModeEnum.RadialIn)
                 {
-                    InitRadialIn();
+                    CommandRadialIn();
                     stateStr = mode.ToString();
                 }
                 else if (mode == NavModeEnum.RadialOut)
                 {
-                    InitRadialOut();
+                    CommandRadialOut();
                     stateStr = mode.ToString();
                 }
 
@@ -280,13 +303,13 @@ const int printInterval = 10;
 
             debugLcd?.WriteText(debug.ToString());
 
-            if (IsNavIdle)
+            if (_navMode == NavModeEnum.Idle)
             {
                 idleCounter++;
             }
-            else if (cruiseController != null)
+            else if (_cruiseController != null)
             {
-                cruiseController.Run();
+                _cruiseController?.Run();
             }
 
             if (idleCounter >= 600)
@@ -294,7 +317,7 @@ const int printInterval = 10;
                 NavMode = NavModeEnum.Sleep;
             }
 
-            if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : printInterval) == 0)
+            if (_navMode == NavModeEnum.Sleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : printInterval) == 0)
             {
                 WritePbOutput();
             }
@@ -302,12 +325,13 @@ const int printInterval = 10;
 
         private void AbortNav(bool saveconfig = true)
         {
-            cruiseController?.Abort();
+            CruiseController?.Abort();
 
-            DisableThrustOverrides();
+            thrustController.ResetThrustOverrides();
             DisableGyroOverrides();
-
-            cruiseController = null;
+            
+            NavMode = NavModeEnum.Idle;
+            CruiseController = null;
 
             if (saveconfig)
             {
@@ -316,24 +340,23 @@ const int printInterval = 10;
             }
         }
 
-        private void CruiseTerminated(ICruiseController source, string reason)
+        private void OnCruiseTerminated(ICruiseController source, string reason)
         {
             optionalInfo = $"{source.Name} Terminated.\nReason: {reason}";
 
-            cruiseController = null;
+            NavMode = NavModeEnum.Idle;
+            CruiseController = null;
 
             LoadConfig(false);
             config.PersistStateData = "";
             SaveConfig();
-
-            NavMode = NavModeEnum.Idle;
         }
 
         private void NavModeChanged(NavModeEnum old, NavModeEnum now)
         {
             idleCounter = 0;
 
-            if (IsNavSleep)
+            if (now == NavModeEnum.Sleep)
             {
                 Runtime.UpdateFrequency = UpdateFrequency.None;
                 optionalInfo = "Sleeping...";
@@ -343,13 +366,6 @@ const int printInterval = 10;
                 Runtime.UpdateFrequency = UpdateFrequency.Update1;
                 optionalInfo = "";
             }
-        }
-
-        private void DisableThrustOverrides()
-        {
-            foreach (var list in thrusters.Values)
-                for (int i = 0; i < list.Count; i++)
-                    list[i].ThrustOverridePercentage = 0;
         }
 
         private void DisableGyroOverrides()
@@ -433,7 +449,7 @@ const int printInterval = 10;
             throw new Exception("Unknown direction");
         }
 
-        private StringBuilder pbOut = new StringBuilder();
+        private readonly StringBuilder pbOut = new StringBuilder();
         public static string optionalInfo = "";
 
         private void WritePbOutput()
@@ -464,13 +480,14 @@ Journey Start
             pbOut.Append("\nUptime: ").Append(SecondsToDuration(upTime.TotalSeconds));
             pbOut.Append("\nMode: ").AppendLine(NavMode.ToString());
 
-            if (optionalInfo.Length > 0)
+            if (optionalInfo != null && optionalInfo.Length > 0)
             {
                 pbOut.AppendLine();
                 pbOut.AppendLine(optionalInfo);
             }
 
-            AppendNavInfo(pbOut);
+            //placeholder - 
+            _cruiseController?.AppendStatus(pbOut);
 
             pbOut.Append("\n-- Loaded Config --\n" +
                 nameof(config.MaxThrustOverrideRatio) + "=" + config.MaxThrustOverrideRatio.ToString() + "\n" +
@@ -511,12 +528,6 @@ Journey Start
             pbOut.Clear();
         }
 
-        private void AppendNavInfo(StringBuilder strb)
-        {
-            //placeholder - 
-            cruiseController?.AppendStatus(strb);
-        }
-
         public static string SecondsToDuration(double seconds, bool fractions = false)
         {
             if (double.IsNaN(seconds))
@@ -535,8 +546,8 @@ Journey Start
 
             seconds %= 60;
 
-            if (hours > 0) return $"{hours.ToString("00")}:{minutes.ToString("00")}:{seconds.ToString("00")}{(fractions ? (seconds - (int)seconds).ToString(".000") : "")}";
-            else return $"{minutes.ToString("00")}:{seconds.ToString("00")}";
+            if (hours > 0) return $"{hours:00}:{minutes:00}:{seconds:00}{(fractions ? (seconds - (int)seconds).ToString(".000") : "")}";
+            else return $"{minutes:00}:{seconds:00}";
         }
 
         public static void Log(string message) => debug?.AppendLine(message);
