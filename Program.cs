@@ -1,4 +1,5 @@
-﻿using Sandbox.Game.EntityComponents;
+﻿// <mdk sortorder="-1" />
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -20,18 +21,21 @@ using VRageMath;
 
 namespace IngameScript
 {
-    public enum NavModeEnum //legacy: all future modes should be a class derived from ICruiseController
+    public enum NavModeEnum
     {
-        Sleep = -1,
-        Idle = 0,
-        Cruise = 1,
-        Retrograde = 2,
-        Prograde = 3,
-        SpeedMatch = 4,
-        Retroburn = 5,
-        Orient = 6,
+        Sleep             = -1,
+        Idle              = 0,
+        Cruise            = 1,
+        Retrograde        = 2,
+        Prograde          = 3,
+        SpeedMatch        = 4,
+        Retroburn         = 5,
+        Orient            = 6,
         CalibrateTurnTime = 7,
-        Journey = 8,
+        Journey           = 8,
+        Autopilot         = 9,
+        RadialIn          = 10,
+        RadialOut         = 11,
     }
 
     public enum Direction : byte
@@ -41,18 +45,22 @@ namespace IngameScript
         Left,
         Right,
         Up,
-        Down
+        Down,
+        MAX_COUNT,
     }
 
     public partial class Program : MyGridProgram
     {
-        #region mdk preserve
-        //Config is in the CustomData
+#region mdk preserve
 
-        //lcd for logging
-        const string debugLcdName = "debugLcd";
-        const double throttleRt = 0.1;
-        #endregion mdk preserve
+//Config is in the CustomData
+
+//lcd for logging
+const string debugLcdName = "debugLcd";
+const double throttleRt = 0.1;
+const int printInterval = 10;
+
+#endregion mdk preserve
 
         public NavModeEnum NavMode
         {
@@ -61,15 +69,40 @@ namespace IngameScript
             {
                 if (_navMode != value)
                 {
-                    var old = _navMode;
+                    var oldValue = _navMode;
                     _navMode = value;
-                    NavModeChanged(old, value);
+                    NavModeChanged(oldValue, value);
                 }
             }
         }
+
+        private ICruiseController CruiseController
+        {
+            get { return _cruiseController; }
+            set
+            {
+                if (_cruiseController != value)
+                {
+                    var oldValue = _cruiseController;
+                    var newValue = value;
+
+                    if (oldValue != null)
+                    {
+                        oldValue.CruiseTerminated -= OnCruiseTerminated;
+                    }
+
+                    _cruiseController = newValue;
+
+                    if (newValue != null)
+                    {
+                        newValue.CruiseTerminated += OnCruiseTerminated;
+                    }
+                }
+            }
+        }
+
         private NavModeEnum _navMode = NavModeEnum.Idle;
-        public bool IsNavIdle => NavMode == NavModeEnum.Idle;
-        public bool IsNavSleep => NavMode == NavModeEnum.Sleep;
+        private ICruiseController _cruiseController = null;
 
         private Dictionary<Direction, List<IMyThrust>> thrusters = new Dictionary<Direction, List<IMyThrust>>
         {
@@ -86,19 +119,18 @@ namespace IngameScript
         private static StringBuilder debug;
         private IMyTextSurface debugLcd;
         private IMyTextSurface consoleLcd;
-        private int counter = -1;
+        public static int counter = -1;
         private int idleCounter = 0;
 
         private IAimController aimController;
         private Profiler profiler;
         private WcPbApi wcApi;
         private bool wcApiActive = false;
-        private ICruiseController cruiseController;
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
 
         private DateTime bootTime;
         public const string programName = "NavOS";
-        public const string versionStr = "2.14.7";
+        public const string versionStr = "2.15";
 
         public Config config;
 
@@ -196,13 +228,36 @@ namespace IngameScript
                     int step;
                     if (int.TryParse(args[1], out step))
                     {
+                        thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
                         NavMode = NavModeEnum.Journey;
-                        thrustController.MaxThrustRatio = (float)config.MaxThrustOverrideRatio;
-                        cruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
-                        cruiseController.CruiseTerminated += CruiseTerminated;
-                        ((Journey)cruiseController).InitStep(step);
+                        CruiseController = new Journey(aimController, controller, gyros, config.Ship180TurnTimeSeconds * 1.5, thrustController, this);
+                        ((Journey)CruiseController).InitStep(step);
                         stateStr = mode.ToString();
                     }
+                }
+                else if (mode == NavModeEnum.Autopilot && args.Length >= 2)
+                {
+                    double desiredSpeed;
+                    Vector3D target;
+                    if (double.TryParse(args[1], out desiredSpeed) && Vector3D.TryParse(Storage, out target))
+                    {
+                        InitAutopilot(target, desiredSpeed, false);
+                        stateStr = mode + " " + desiredSpeed;
+                    }
+                    else
+                    {
+                        stateStr = null;
+                    }
+                }
+                else if (mode == NavModeEnum.RadialIn)
+                {
+                    CommandRadialIn();
+                    stateStr = mode.ToString();
+                }
+                else if (mode == NavModeEnum.RadialOut)
+                {
+                    CommandRadialOut();
+                    stateStr = mode.ToString();
                 }
 
                 if (stateStr == null)
@@ -248,13 +303,13 @@ namespace IngameScript
 
             debugLcd?.WriteText(debug.ToString());
 
-            if (IsNavIdle)
+            if (_navMode == NavModeEnum.Idle)
             {
                 idleCounter++;
             }
-            else if (cruiseController != null)
+            else if (_cruiseController != null)
             {
-                cruiseController.Run();
+                _cruiseController?.Run();
             }
 
             if (idleCounter >= 600)
@@ -262,7 +317,7 @@ namespace IngameScript
                 NavMode = NavModeEnum.Sleep;
             }
 
-            if (IsNavSleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : 10) == 0)
+            if (_navMode == NavModeEnum.Sleep || counter % (profiler.RunningAverageMs > throttleRt ? 60 : printInterval) == 0)
             {
                 WritePbOutput();
             }
@@ -270,12 +325,13 @@ namespace IngameScript
 
         private void AbortNav(bool saveconfig = true)
         {
-            cruiseController?.Abort();
+            CruiseController?.Abort();
 
-            DisableThrustOverrides();
+            thrustController.ResetThrustOverrides();
             DisableGyroOverrides();
-
-            cruiseController = null;
+            
+            NavMode = NavModeEnum.Idle;
+            CruiseController = null;
 
             if (saveconfig)
             {
@@ -284,24 +340,23 @@ namespace IngameScript
             }
         }
 
-        private void CruiseTerminated(ICruiseController source, string reason)
+        private void OnCruiseTerminated(ICruiseController source, string reason)
         {
             optionalInfo = $"{source.Name} Terminated.\nReason: {reason}";
 
-            cruiseController = null;
+            NavMode = NavModeEnum.Idle;
+            CruiseController = null;
 
             LoadConfig(false);
             config.PersistStateData = "";
             SaveConfig();
-
-            NavMode = NavModeEnum.Idle;
         }
 
         private void NavModeChanged(NavModeEnum old, NavModeEnum now)
         {
             idleCounter = 0;
 
-            if (IsNavSleep)
+            if (now == NavModeEnum.Sleep)
             {
                 Runtime.UpdateFrequency = UpdateFrequency.None;
                 optionalInfo = "Sleeping...";
@@ -311,13 +366,6 @@ namespace IngameScript
                 Runtime.UpdateFrequency = UpdateFrequency.Update1;
                 optionalInfo = "";
             }
-        }
-
-        private void DisableThrustOverrides()
-        {
-            foreach (var list in thrusters.Values)
-                for (int i = 0; i < list.Count; i++)
-                    list[i].ThrustOverridePercentage = 0;
         }
 
         private void DisableGyroOverrides()
@@ -401,7 +449,7 @@ namespace IngameScript
             throw new Exception("Unknown direction");
         }
 
-        private StringBuilder pbOut = new StringBuilder();
+        private readonly StringBuilder pbOut = new StringBuilder();
         public static string optionalInfo = "";
 
         private void WritePbOutput()
@@ -432,13 +480,14 @@ Journey Start
             pbOut.Append("\nUptime: ").Append(SecondsToDuration(upTime.TotalSeconds));
             pbOut.Append("\nMode: ").AppendLine(NavMode.ToString());
 
-            if (optionalInfo.Length > 0)
+            if (optionalInfo != null && optionalInfo.Length > 0)
             {
                 pbOut.AppendLine();
                 pbOut.AppendLine(optionalInfo);
             }
 
-            AppendNavInfo(pbOut);
+            //placeholder - 
+            _cruiseController?.AppendStatus(pbOut);
 
             pbOut.Append("\n-- Loaded Config --\n" +
                 nameof(config.MaxThrustOverrideRatio) + "=" + config.MaxThrustOverrideRatio.ToString() + "\n" +
@@ -479,12 +528,6 @@ Journey Start
             pbOut.Clear();
         }
 
-        private void AppendNavInfo(StringBuilder strb)
-        {
-            //placeholder - 
-            cruiseController?.AppendStatus(strb);
-        }
-
         public static string SecondsToDuration(double seconds, bool fractions = false)
         {
             if (double.IsNaN(seconds))
@@ -503,8 +546,8 @@ Journey Start
 
             seconds %= 60;
 
-            if (hours > 0) return $"{hours.ToString("00")}:{minutes.ToString("00")}:{seconds.ToString("00")}{(fractions ? (seconds - (int)seconds).ToString(".000") : "")}";
-            else return $"{minutes.ToString("00")}:{seconds.ToString("00")}";
+            if (hours > 0) return $"{hours:00}:{minutes:00}:{seconds:00}{(fractions ? (seconds - (int)seconds).ToString(".000") : "")}";
+            else return $"{minutes:00}:{seconds:00}";
         }
 
         public static void Log(string message) => debug?.AppendLine(message);

@@ -20,28 +20,32 @@ using VRageMath;
 
 namespace IngameScript
 {
-    public class Prograde : Orient
+    public class RadialIn : Orient
     {
-        private const double TERMINATE_SPEED = 5;
+        public override string Name => nameof(RadialIn);
 
-        public override string Name => nameof(Prograde);
+        private Vector3D _gravity;
 
-        public Prograde(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
+        public RadialIn(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
             : base(aimControl, controller, gyros)
         {
+            _gravity = controller.GetNaturalGravity();
         }
 
         public override void Run()
         {
-            Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
-
-            if (shipVelocity.LengthSquared() <= TERMINATE_SPEED * TERMINATE_SPEED)
+            if ((Program.counter % 10) == 0)
             {
-                Terminate($"Speed is less than {TERMINATE_SPEED:0.#} m/s");
+                _gravity = ShipController.GetNaturalGravity();
+            }
+
+            if (_gravity == Vector3D.Zero)
+            {
+                Terminate("No gravity detected");
                 return;
             }
 
-            Orient(shipVelocity);
+            Orient(_gravity);
         }
     }
 }

@@ -10,7 +10,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    internal class SpeedMatch : ICruiseController
+    public class SpeedMatch : ICruiseController
     {
         private enum TargetAcquisitionMode
         {
@@ -31,7 +31,7 @@ namespace IngameScript
         private WcPbApi wcApi;
         private IMyTerminalBlock pb;
 
-        private IVariableThrustController thrustController;
+        private VariableThrustController thrustController;
         private int counter = 0;
         private Dictionary<MyDetectedEntityInfo, float> threats = new Dictionary<MyDetectedEntityInfo, float>();
         private List<MyDetectedEntityInfo> obstructions = new List<MyDetectedEntityInfo>();
@@ -46,7 +46,7 @@ namespace IngameScript
             WcPbApi wcApi,
             IMyShipController shipController,
             IMyTerminalBlock programmableBlock,
-            IVariableThrustController thrustController)
+            VariableThrustController thrustController)
         {
             this.targetEntityId = targetEntityId;
             this.wcApi = wcApi;
@@ -176,7 +176,7 @@ namespace IngameScript
                     Math.Abs(input.Y) <= 0.01 ? thrustAmount.Y : 0,
                     Math.Abs(input.Z) <= 0.01 ? thrustAmount.Z : 0);
 
-                thrustController.SetThrusts(thrustAmount, 0);
+                thrustController.SetThrusts(thrustAmount);
             }
         }
 

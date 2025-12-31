@@ -1,9 +1,10 @@
-﻿NavOS v2.14.7 brought to you by StarCpt
+﻿NavOS v2.15 brought to you by StarCpt
 
 Config (In the customdata of the pb - Must recompile when modified!!):
 # PersistStateData: DO NOT TOUCH
 
 # MaxThrustOverrideRatio: Amount of forward thrust to use. 0 = 0%, 0.5 = 50%, 1 = 100%
+Important: In gravity forward override ratio may exceed this value.
 
 # IgnoreMaxThrustForSpeedMatch: Ignore the above config if using SpeedMatch if true.
 
@@ -40,19 +41,27 @@ Commands:
 Automatically travels the set distance in the forward direction of the ship controller (cockpit) at the desired speed.
 Example: Cruise 500 20000
 
-# Cruise <DesiredSpeed> <X:Y:Z>
-Automatically travels to the set coordinates (plus the offset in config) at the desired speed.
-Example: Cruise 500 15000:70000:17000
-
-# Cruise <DesiredSpeed> <GPS>
+# Cruise <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
 Same as above for GPSes
-Example: Cruise 500 GPS:target:15000:70000:17000:FFFFFF
+If UseCruiseOffset is unset, cruise offsets are enabled by default
+Example 1: Cruise 500 GPS:target:15000:70000:17000:
+Example 2: Cruise 500 GPS:target:15000:70000:17000: false - won't use cruise offsets
+
+# Autopilot <DesiredSpeed> <ForwardDistanceMeters>
+# Autopilot <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
+Travels to the target gps (plus configured offsets) or specified forward distance using omnidirectional thrust without turning the ship.
 
 # Retro/Retrograde
 Points the ship in the opposite direction of travel
 
 # Prograde
 Points the ship in the direction of travel
+
+# RadialIn
+Orient toward natural gravity
+
+# RadialOut
+Orient away from natural gravity
 
 # Retroburn
 Points the ship to retrograde and stops the ship

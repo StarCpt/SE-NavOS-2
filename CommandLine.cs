@@ -12,7 +12,6 @@ namespace IngameScript
         public int Count => args.Count;
 
         private List<string> args = new List<string>();
-        private List<string> flags = new List<string>();
 
         private static readonly char[] charSpace = { ' ' };
 
@@ -39,8 +38,6 @@ namespace IngameScript
             {
                 args.AddRange(command.Split(charSpace, StringSplitOptions.RemoveEmptyEntries));
             }
-
-            flags.AddRange(args.Where(i => i.StartsWith("-")).Select(i => i.TrimStart('-')));
         }
 
         public string this[int index, bool lowerCase = false] => args.IsValidIndex(index) ? (lowerCase ? args[index].ToLower() : args[index]) : null;
@@ -53,6 +50,5 @@ namespace IngameScript
 
             return args[index].Equals(str, ignoreCase ? StringComparison.CurrentCultureIgnoreCase : StringComparison.CurrentCulture);
         }
-        public bool HasFlag(string flag) => flags.Contains(flag);
     }
 }

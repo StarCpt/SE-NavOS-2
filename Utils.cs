@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VRage.Game;
+using VRage.Game.ModAPI.Ingame;
 using VRageMath;
 
 namespace IngameScript
@@ -24,6 +26,22 @@ namespace IngameScript
             totalSeconds %= 60;
             strb.Append(minutes).Append(":").Append(totalSeconds.ToString("00.0"));
             return strb;
+        }
+
+        public static string MinuteAndSeconds(double totalSeconds)
+        {
+            return $"{(int)totalSeconds / 60}:{totalSeconds % 60:00.0}";
+        }
+
+        public static Vector3D Normalize(ref Vector3D vec, out double length)
+        {
+            length = vec.Length();
+            return vec / length;
+        }
+
+        public static double GetWorldMaxSpeed(this Program program)
+        {
+            return program.Me.CubeGrid.GridSizeEnum == MyCubeSize.Large ? program.World.LargeShipMaxSpeed : program.World.SmallShipMaxSpeed;
         }
     }
 }
