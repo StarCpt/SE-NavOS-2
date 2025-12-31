@@ -176,7 +176,7 @@ namespace IngameScript
                     Math.Abs(input.Y) <= 0.01 ? thrustAmount.Y : 0,
                     Math.Abs(input.Z) <= 0.01 ? thrustAmount.Z : 0);
 
-                thrustController.SetThrusts(thrustAmount, 0);
+                thrustController.SetThrusts(thrustAmount);
             }
         }
 

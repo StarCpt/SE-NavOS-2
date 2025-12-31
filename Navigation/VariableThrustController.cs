@@ -84,7 +84,7 @@ namespace IngameScript
         public void DampenAllDirections(Vector3D shipVelocity, float gridMass, float ups)
         {
             Vector3 localVelocity = Vector3D.TransformNormal(shipVelocity, MatrixD.Transpose(_shipController.WorldMatrix));
-            SetThrusts(localVelocity * gridMass * ups, 0);
+            SetThrusts(localVelocity * gridMass * ups);
         }
 
         public void DampenAllDirections(Vector3D shipVelocity, Vector3D gravity, float gridMass, float ups)
@@ -107,75 +107,89 @@ namespace IngameScript
             backward *= backThrustInv;
             forward = Math.Min(forward * forwardThrustInv, _maxForwardThrustRatio + Math.Max(0, (float)localGravity.Z * gridMass * forwardThrustInv));
 
+            backward = MathHelper.Saturate(backward);
+            forward = MathHelper.Saturate(forward);
+
             var backwardThrusters = _thrusters[(int)Direction.Backward];
             for (int i = backwardThrusters.Count - 1; i >= 0; i--)
             {
-                backwardThrusters[i].ThrustOverridePercentage = backward;
+                if (backwardThrusters[i].ThrustOverridePercentage != backward)
+                    backwardThrusters[i].ThrustOverridePercentage = backward;
             }
 
             var forwardThrusters = _thrusters[(int)Direction.Forward];
             for (int i = forwardThrusters.Count - 1; i >= 0; i--)
             {
-                forwardThrusters[i].ThrustOverridePercentage = forward;
+                if (forwardThrusters[i].ThrustOverridePercentage != forward)
+                    forwardThrusters[i].ThrustOverridePercentage = forward;
             }
         }
 
-        public void SetThrusts(Vector3 thrustAmount, float tolerance)
+        public void SetThrusts(Vector3 thrustAmount)
         {
-            float right    = thrustAmount.X < tolerance ? -thrustAmount.X : 0;
-            float left     = thrustAmount.X > tolerance ? thrustAmount.X : 0;
-            float up       = thrustAmount.Y < tolerance ? -thrustAmount.Y : 0;
-            float down     = thrustAmount.Y > tolerance ? thrustAmount.Y : 0;
-            float backward = thrustAmount.Z < tolerance ? -thrustAmount.Z : 0;
-            float forward  = thrustAmount.Z > tolerance ? thrustAmount.Z : 0;
+            float right    = thrustAmount.X < 0 ? -thrustAmount.X : 0;
+            float left     = thrustAmount.X > 0 ? thrustAmount.X : 0;
+            float up       = thrustAmount.Y < 0 ? -thrustAmount.Y : 0;
+            float down     = thrustAmount.Y > 0 ? thrustAmount.Y : 0;
+            float backward = thrustAmount.Z < 0 ? -thrustAmount.Z : 0;
+            float forward  = thrustAmount.Z > 0 ? thrustAmount.Z : 0;
 
             SetSideThrusts(left, right, up, down);
 
             backward *= backThrustInv;
             forward = Math.Min(forward * forwardThrustInv, _maxForwardThrustRatio);
 
+            backward = MathHelper.Saturate(backward);
+            forward = MathHelper.Saturate(forward);
+
             var backwardThrusters = _thrusters[(int)Direction.Backward];
             for (int i = backwardThrusters.Count - 1; i >= 0; i--)
             {
-                backwardThrusters[i].ThrustOverridePercentage = backward;
+                if (backwardThrusters[i].ThrustOverridePercentage != backward)
+                    backwardThrusters[i].ThrustOverridePercentage = backward;
             }
 
             var forwardThrusters = _thrusters[(int)Direction.Forward];
             for (int i = forwardThrusters.Count - 1; i >= 0; i--)
             {
-                forwardThrusters[i].ThrustOverridePercentage = forward;
+                if (forwardThrusters[i].ThrustOverridePercentage != forward)
+                    forwardThrusters[i].ThrustOverridePercentage = forward;
             }
         }
 
         public void SetSideThrusts(float left, float right, float up, float down)
         {
-            right *= rightThrustInv;
-            left *= leftThrustInv;
-            up *= upThrustInv;
-            down *= downThrustInv;
+            right = MathHelper.Saturate(right * rightThrustInv);
+            left  = MathHelper.Saturate(left  * leftThrustInv);
+            up    = MathHelper.Saturate(up    * upThrustInv);
+            down  = MathHelper.Saturate(down  * downThrustInv);
 
             var rightThrusters = _thrusters[(int)Direction.Right];
             for (int i = rightThrusters.Count - 1; i >= 0; i--)
             {
-                rightThrusters[i].ThrustOverridePercentage = right;
+                if (rightThrusters[i].ThrustOverridePercentage != right)
+                    rightThrusters[i].ThrustOverridePercentage = right;
             }
 
             var leftThrusters = _thrusters[(int)Direction.Left];
             for (int i = leftThrusters.Count - 1; i >= 0; i--)
             {
-                leftThrusters[i].ThrustOverridePercentage = left;
+                if (leftThrusters[i].ThrustOverridePercentage != left)
+                    leftThrusters[i].ThrustOverridePercentage = left;
             }
 
             var upThrusters = _thrusters[(int)Direction.Up];
             for (int i = upThrusters.Count - 1; i >= 0; i--)
             {
-                upThrusters[i].ThrustOverridePercentage = up;
+                if (upThrusters[i].ThrustOverridePercentage != up)
+                    upThrusters[i].ThrustOverridePercentage = up;
             }
 
             var downThrusters = _thrusters[(int)Direction.Down];
             for (int i = downThrusters.Count - 1; i >= 0; i--)
             {
-                downThrusters[i].ThrustOverridePercentage = down;
+                if (downThrusters[i].ThrustOverridePercentage != down)
+                    downThrusters[i].ThrustOverridePercentage = down;
             }
         }
 
