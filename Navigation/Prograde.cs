@@ -1,47 +1,47 @@
-﻿using Sandbox.ModAPI.Ingame;
+﻿using Sandbox.Game.EntityComponents;
+using Sandbox.ModAPI.Ingame;
+using Sandbox.ModAPI.Interfaces;
+using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using VRage;
+using VRage.Collections;
+using VRage.Game;
+using VRage.Game.Components;
+using VRage.Game.GUI.TextPanel;
+using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI.Ingame.Utilities;
+using VRage.Game.ObjectBuilders.Definitions;
+using VRageMath;
 
 namespace IngameScript
 {
-    internal class Prograde : OrientControllerBase, ICruiseController
+    public class Prograde : Orient
     {
-        public event CruiseTerminateEventDelegate CruiseTerminated = delegate { };
+        private const double TERMINATE_SPEED = 5;
 
-        public string Name => nameof(Prograde);
-        public IMyShipController Controller { get; set; }
-
-        public double terminateSpeed = 5;
+        public override string Name => nameof(Prograde);
 
         public Prograde(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
             : base(aimControl, controller, gyros)
         {
-            this.Controller = controller;
         }
 
-        public void Run()
+        public override void Run()
         {
-            var shipVelocity = Controller.GetShipVelocities().LinearVelocity;
-            Orient(shipVelocity);
+            Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
 
-            if (shipVelocity.LengthSquared() <= terminateSpeed * terminateSpeed)
+            if (shipVelocity.LengthSquared() <= TERMINATE_SPEED * TERMINATE_SPEED)
             {
-                Terminate($"Speed is less than {terminateSpeed:0.#} m/s");
+                Terminate($"Speed is less than {TERMINATE_SPEED:0.#} m/s");
+                return;
             }
+
+            Orient(shipVelocity);
         }
-
-        public void AppendStatus(StringBuilder strb) { }
-
-        public void Terminate(string reason)
-        {
-            ResetGyroOverride();
-            CruiseTerminated.Invoke(this, reason);
-        }
-
-        public void Abort() => Terminate("Aborted");
-        protected override void OnNoFunctionalGyrosLeft() => Terminate("No functional gyros found");
     }
 }
