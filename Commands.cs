@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using VRage.Game;
 using VRageMath;
 
@@ -75,7 +74,7 @@ namespace IngameScript
                 return;
             }
 
-            if (result < 0 || result > 1.01)
+            if (result < 0 || result > 1)
             {
                 optionalInfo = "Ratio must be between 0.0 and 1.0!";
                 return;
@@ -101,21 +100,20 @@ namespace IngameScript
 
             if (cmd.Count < 3)
             {
+                optionalInfo = "Cruise arguments missing";
                 return;
             }
 
-            try
+            double desiredSpeed;
+            Vector3D target;
+            string error;
+            if (TryParseCruiseCommands(cmd, out desiredSpeed, out target, out error))
             {
-                double desiredSpeed;
-                Vector3D target;
-                if (TryParseCruiseCommands(cmd, out desiredSpeed, out target))
-                {
-                    InitRetroCruise(target, desiredSpeed);
-                }
+                InitRetroCruise(target, desiredSpeed);
             }
-            catch (Exception e)
+            else
             {
-                optionalInfo = e.ToString();
+                optionalInfo = error;
             }
         }
 
@@ -193,14 +191,21 @@ namespace IngameScript
             optionalInfo = "";
             if (!wcApiActive)
             {
+                // try to activate the api again
                 try { wcApiActive = wcApi.Activate(Me); }
                 catch { wcApiActive = false; }
             }
             if (!wcApiActive)
+            {
+                optionalInfo = "WeaponCore API error";
                 return;
+            }
             var target = wcApi.GetAiFocus(Me.CubeGrid.EntityId);
             if ((target?.EntityId ?? 0) == 0)
+            {
+                optionalInfo = "Locked target not found";
                 return;
+            }
             InitSpeedMatch(target.Value.EntityId);
         }
 
@@ -270,24 +275,23 @@ namespace IngameScript
             // autopilot <speed> <GPS>
             if (cmd.Count < 3)
             {
+                optionalInfo = "Autopilot arguments missing";
                 return;
             }
 
             AbortNav(false);
             optionalInfo = "";
 
-            try
+            double desiredSpeed;
+            Vector3D target;
+            string error;
+            if (TryParseCruiseCommands(cmd, out desiredSpeed, out target, out error))
             {
-                double desiredSpeed;
-                Vector3D target;
-                if (TryParseCruiseCommands(cmd, out desiredSpeed, out target))
-                {
-                    InitAutopilot(target, desiredSpeed);
-                }
+                InitAutopilot(target, desiredSpeed);
             }
-            catch (Exception e)
+            else
             {
-                optionalInfo = e.ToString();
+                optionalInfo = error;
             }
         }
 
@@ -313,57 +317,75 @@ namespace IngameScript
         // <cmdName> <speed> <forwardDist>
         // <cmdName> <speed> <X:Y:Z>
         // <cmdName> <speed> <GPS>
-        private bool TryParseCruiseCommands(CommandLine cmd, out double desiredSpeed, out Vector3D target)
+        private bool TryParseCruiseCommands(CommandLine cmd, out double desiredSpeed, out Vector3D target, out string error)
         {
             target = Vector3D.Zero;
-            desiredSpeed = double.Parse(cmd[1]);
+            desiredSpeed = 0;
 
-            double result;
-            bool distanceCruise;
-            if (distanceCruise = double.TryParse(cmd[2], out result))
+            try
             {
-                target = controller.GetPosition() + (controller.WorldMatrix.Forward * result);
+                if (!double.TryParse(cmd[1], out desiredSpeed))
+                {
+                    error = "Could not parse desired speed";
+                    return false;
+                }
+
+                Vector3D controllerPos = controller.WorldAABB.Center;
+
+                double result;
+                bool distanceCruise;
+                if (distanceCruise = double.TryParse(cmd[2], out result))
+                {
+                    target = controllerPos + (controller.WorldMatrix.Forward * result);
+                }
+                else if (cmd.Gps.HasValue)
+                {
+                    target = cmd.Gps.Value.Position;
+                }
+                else
+                {
+                    error = "Could not parse target";
+                    return false;
+                }
+
+                bool useOffsets = true; // true by default
+                if (cmd.Count >= 4 && cmd[3].ToLower() == "false")
+                {
+                    useOffsets = false;
+                }
+
+                useOffsets = useOffsets && !distanceCruise; // distance cruise doesn't use offsets
+
+                if (useOffsets)
+                {
+                    Vector3D offsetTarget = Vector3D.Zero;
+
+                    if (config.CruiseOffsetDist > 0)
+                    {
+                        if (config.CruiseOffsetSideDist == 0)
+                        {
+                            error = "Side offset cannot be zero when using offset";
+                            return false;
+                        }
+                        offsetTarget += (target - controllerPos).SafeNormalize() * -config.CruiseOffsetDist;
+                    }
+
+                    if (config.CruiseOffsetSideDist > 0)
+                    {
+                        offsetTarget += Vector3D.CalculatePerpendicularVector(target - controllerPos) * config.CruiseOffsetSideDist;
+                    }
+
+                    target += offsetTarget;
+                }
+
+                error = null;
+                return true;
             }
-            else if (cmd.Gps.HasValue)
+            catch (Exception e)
             {
-                target = cmd.Gps.Value.Position;
-            }
-            else
-            {
+                error = e.ToString();
                 return false;
             }
-
-            bool useOffsets = true; // true by default
-            if (cmd.Count >= 4 && cmd[3].ToLower() == "false")
-            {
-                useOffsets = false;
-            }
-
-            useOffsets = useOffsets && !distanceCruise; // distance cruise doesn't use offsets
-
-            if (useOffsets)
-            {
-                Vector3D offsetTarget = Vector3D.Zero;
-
-                if (config.CruiseOffsetDist > 0)
-                {
-                    if (config.CruiseOffsetSideDist == 0)
-                    {
-                        optionalInfo = "Side offset cannot be zero when using offset";
-                        return false;
-                    }
-                    offsetTarget += (target - controller.GetPosition()).SafeNormalize() * -config.CruiseOffsetDist;
-                }
-
-                if (config.CruiseOffsetSideDist > 0)
-                {
-                    offsetTarget += Vector3D.CalculatePerpendicularVector(target - controller.GetPosition()) * config.CruiseOffsetSideDist;
-                }
-
-                target += offsetTarget;
-            }
-
-            return true;
         }
 
         private void InitOrient(Vector3D target)
