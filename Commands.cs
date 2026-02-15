@@ -324,7 +324,7 @@ namespace IngameScript
             // my radius + target radius
             double minRadius = Me.CubeGrid.WorldVolume.Radius + targetRadius;
 
-            Vector3D myPos = controller.WorldAABB.Center;
+            Vector3D myPos = Me.CubeGrid.WorldAABB.Center;
 
             if (Vector3D.DistanceSquared(targetPos, myPos) < (minRadius * minRadius))
             {
@@ -346,11 +346,12 @@ namespace IngameScript
             Vector3D navTarget = targetPos + offsetDir * minRadius;
 
             // attempt to find closer intersection with minRadius sphere
-            double? closestIntersection = new RayD(myPos, Vector3D.Normalize(navTarget - myPos)).Intersects(new BoundingSphereD(targetPos, minRadius));
+            Vector3D navTargetDir = Vector3D.Normalize(navTarget - myPos);
+            double? closestIntersection = new RayD(myPos, navTargetDir).Intersects(new BoundingSphereD(targetPos, minRadius));
 
             if (closestIntersection.HasValue)
             {
-                navTarget = myPos + targetDir * closestIntersection.Value;
+                navTarget = myPos + navTargetDir * closestIntersection.Value;
             }
 
             AbortNav(false);
