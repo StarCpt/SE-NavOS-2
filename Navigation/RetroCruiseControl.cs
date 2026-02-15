@@ -492,7 +492,7 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
                     double speedDelta = DesiredSpeed - forwardSpeed;
                     double desiredAccel = speedDelta + (expectedAccel - actualAccel);
                     double desiredThrustRatio = desiredAccel / forwardAccel * UPS;
-                    thrustRatio = Math.Min(MaxThrustRatio, (float)desiredThrustRatio);
+                    thrustRatio = MathHelper.IsValid(desiredThrustRatio) ? Math.Min(MaxThrustRatio, (float)desiredThrustRatio) : 0;
                 }
                 else if (desiredSpeedReached)
                 {
@@ -515,8 +515,8 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
                 Vector3D velocityPerpendicularToTarget = Vector3D.ProjectOnPlane(ref velocity, ref targetDirection);
                 DampenSidewaysToZero(velocityPerpendicularToTarget, UPS);
 
-                lastForwardSpeedDuringAccel = forwardSpeed;
-                lastForwardThrustRatioDuringAccel = thrustRatio;
+                lastForwardSpeedDuringAccel = MathHelper.IsValid(forwardSpeed) ? forwardSpeed : 0;
+                lastForwardThrustRatioDuringAccel = MathHelper.IsValid(thrustRatio) ? thrustRatio : 0;
 
                 return;
             }
