@@ -36,7 +36,7 @@ namespace IngameScript
         public static Vector3D Normalize(ref Vector3D vec, out double length)
         {
             length = vec.Length();
-            return vec / length;
+            return length < 0.00001 ? Vector3D.Zero : (vec / length);
         }
 
         public static double GetWorldMaxSpeed(this Program program)

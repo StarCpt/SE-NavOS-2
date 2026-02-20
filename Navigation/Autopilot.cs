@@ -275,6 +275,9 @@ namespace IngameScript
             totalAccelRatio -= minThrust / approachThrust;
             totalDecelRatio -= minThrust / stoppingThrust;
 
+            totalAccelRatio = MathHelper.Saturate(totalAccelRatio);
+            totalDecelRatio = MathHelper.Saturate(totalDecelRatio);
+
             totalAccelRatio *= maxAccelRatio;
             totalDecelRatio *= maxDecelRatio;
 

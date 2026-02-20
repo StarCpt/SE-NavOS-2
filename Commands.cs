@@ -123,9 +123,13 @@ namespace IngameScript
             speed = Math.Min(speed, this.GetWorldMaxSpeed());
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             NavMode = NavModeEnum.Cruise;
-            CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
+            //CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
+            //{
+            //    decelStartMarginSeconds = config.Ship180TurnTimeSeconds * 1.5,
+            //};
+            CruiseController = new RetroCruiseControl2(controller, thrustController, aimController, gyros, target)
             {
-                decelStartMarginSeconds = config.Ship180TurnTimeSeconds * 1.5,
+                ShipFlipTime = config.Ship180TurnTimeSeconds * 1.5,
             };
             config.PersistStateData = $"{NavModeEnum.Cruise}|{speed}|{stage}";
             Storage = target.ToString();

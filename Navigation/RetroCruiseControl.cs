@@ -364,7 +364,7 @@ Aim Error: {(lastAimDirectionAngleRad * RadToDegMulti ?? 0):0.000}
                 else
                 {
                     accelTime = 0;
-                    actualStopTime = velocityLength / forwardAccelPremultiplied * stopTimeAndDistanceMulti; ;
+                    actualStopTime = velocityLength / forwardAccelPremultiplied;
 
                     double cruiseDist = distanceToTarget - currentStopDist;
                     cruiseTime = cruiseDist / velocityLength;

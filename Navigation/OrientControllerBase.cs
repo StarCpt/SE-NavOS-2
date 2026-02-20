@@ -31,6 +31,10 @@ namespace IngameScript
             EnsureGyroIsValid();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="forward">doesn't need to be normalized</param>
         protected void Orient(Vector3D forward)
         {
             if (!EnsureGyroIsValid())
