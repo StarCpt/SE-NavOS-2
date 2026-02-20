@@ -177,7 +177,7 @@ const int printInterval = 10;
                 {
                     double desiredSpeed;
                     Vector3D target;
-                    RetroCruiseControl.RetroCruiseStage stage = RetroCruiseControl.RetroCruiseStage.None;
+                    RetroCruiseControl.CruiseStage stage = RetroCruiseControl.CruiseStage.None;
                     if (double.TryParse(args[1], out desiredSpeed) && Vector3D.TryParse(Storage, out target) && (args.Length < 3 || Enum.TryParse(args[2], out stage)))
                     {
                         InitRetroCruise(target, desiredSpeed, stage, false);

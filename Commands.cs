@@ -118,18 +118,14 @@ namespace IngameScript
             }
         }
 
-        private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.RetroCruiseStage stage = RetroCruiseControl.RetroCruiseStage.None, bool saveConfig = true)
+        private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.CruiseStage stage = RetroCruiseControl.CruiseStage.None, bool saveConfig = true)
         {
             speed = Math.Min(speed, this.GetWorldMaxSpeed());
             thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
             NavMode = NavModeEnum.Cruise;
-            //CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
-            //{
-            //    decelStartMarginSeconds = config.Ship180TurnTimeSeconds * 1.5,
-            //};
-            CruiseController = new RetroCruiseControl2(controller, thrustController, aimController, gyros, target)
+            CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
             {
-                ShipFlipTime = config.Ship180TurnTimeSeconds * 1.5,
+                ShipFlipTimeInSeconds = config.Ship180TurnTimeSeconds * 1.5,
             };
             config.PersistStateData = $"{NavModeEnum.Cruise}|{speed}|{stage}";
             Storage = target.ToString();
