@@ -561,9 +561,10 @@ namespace IngameScript
                 {
                     bool onTarget = Vector3D.Dot(_prevAimDir, _controller.WorldMatrix.Forward) > AIM_ONTARGET_ANGLE_COS;
 
-                    double closingSpeed = currentSpeed > 0 ? currentSpeed * Vector3D.Dot(currentVelocity.Normalized(), targetDir) : 0;
+                    double closingSpeed = currentSpeed > 0 ? currentSpeed * Vector3D.Dot(-currentVelocity.Normalized(), _prevAimDir) : 0;
+                    Vector3D relativePos = Target - currentPos;
+                    double desiredStopDist = Vector3D.ProjectOnVector(ref relativePos, ref _prevAimDir).Length();
 
-                    double desiredStopDist = closing ? targetDist : 0;
                     double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                     double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
 
