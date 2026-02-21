@@ -33,6 +33,7 @@ namespace IngameScript
 
             //CollisionAvoidance,
             Overshoot,
+            ExcessivePerpVel,
 
             Complete,
             Aborted,
@@ -80,6 +81,7 @@ namespace IngameScript
         //updated every 30 ticks
         private float _gridMass;
         private float _forwardAccelPremult;
+        private float _minSideAccel;
 
         //updated every 10 ticks
         private Vector3D _naturalGravity;
@@ -168,6 +170,7 @@ namespace IngameScript
             "Decelerate",
             "Decelerate (gyro lock)",
             "Overshoot",
+            "Excessive Lateral Speed",
             "Completed",
             "Aborted",
             "Terminated",
@@ -312,7 +315,7 @@ namespace IngameScript
 
                 if (!closing)
                 {
-                    _stage = CruiseStage.CancelPerpendicularVelocityFullStop;
+                    Stage = CruiseStage.CancelPerpendicularVelocityFullStop;
                     stageChanged = true;
                 }
                 else
@@ -352,12 +355,12 @@ namespace IngameScript
 
                     if (!approachingAtEnd || !canStopAtEnd)
                     {
-                        _stage = CruiseStage.CancelPerpendicularVelocityFullStop;
+                        Stage = CruiseStage.CancelPerpendicularVelocityFullStop;
                         stageChanged = true;
                     }
                     else if (perpSpeed < PERPENDICULAR_SPEED_THRESHOLD)
                     {
-                        _stage = CruiseStage.Accelerate;
+                        Stage = CruiseStage.Accelerate;
                         stageChanged = true;
                     }
                     else
@@ -395,7 +398,7 @@ namespace IngameScript
 
                 if (currentSpeed < 0.05)
                 {
-                    _stage = CruiseStage.Accelerate;
+                    Stage = CruiseStage.Accelerate;
                     stageChanged = true;
                 }
             }
@@ -407,7 +410,7 @@ namespace IngameScript
                 double availableDist = targetDist;
                 if (closing && stopDist >= availableDist)
                 {
-                    _stage = CruiseStage.Decelerate;
+                    Stage = CruiseStage.Decelerate;
                     stageChanged = true;
                 }
                 else
@@ -492,14 +495,23 @@ namespace IngameScript
                 }
                 else
                 {
-                    Orient(-targetDir);
-                    bool onTarget = Vector3D.Dot(-targetDir, _controller.WorldMatrix.Forward) > AIM_ONTARGET_ANGLE_COS;
+                    Vector3D aimDir = -currentVelocity.Normalized();
+                    Orient(aimDir);
+                    bool onTarget = Vector3D.Dot(aimDir, _controller.WorldMatrix.Forward) > AIM_ONTARGET_ANGLE_COS;
 
-                    if (update10 || stageChanged)
+                    double closingSpeed = currentSpeed;
+                    Vector3D relativePos = Target - currentPos;
+                    double desiredStopDist = Vector3D.ProjectOnVector(ref relativePos, ref aimDir).Length();
+                    double timeUntilDecel = (desiredStopDist - (closingSpeed * closingSpeed) / (2 * _forwardAccelPremult)) / closingSpeed;
+
+                    if (timeUntilDecel > 2 * ShipFlipTimeInSeconds)
                     {
-                        double closingSpeed = currentSpeed > 0 ? currentSpeed * Vector3D.Dot(currentVelocity.Normalized(), targetDir) : 0;
-
-                        double desiredStopTime = targetDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
+                        Stage = CruiseStage.Accelerate;
+                        stageChanged = true;
+                    }
+                    else if (update10 || stageChanged)
+                    {
+                        double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                         double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
                         bool shouldDecel = desiredStopAccel >= _forwardAccelPremult * (1 - DECEL_RESERVE_THRUST);
 
@@ -512,15 +524,21 @@ namespace IngameScript
                             // decel anyway if we'll otherwise overshoot
                             double actualStopTime = currentSpeed / _forwardAccelPremult;
                             double actualStopDist = currentSpeed * 0.5 * actualStopTime;
-                            shouldDecel |= actualStopDist >= targetDist - (closingSpeed * THRUST_TIME_STEP);
+                            shouldDecel |= actualStopDist >= desiredStopDist - (closingSpeed * THRUST_TIME_STEP);
                         }
 
                         float forwardThrustRatio = (onTarget && shouldDecel) ? (float)(desiredStopAccel / _forwardAccelPremult) : 0;
                         forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
                         SetForwardThrustAndResetBackThrusts(forwardThrustRatio);
 
-                        Vector3D perpVel = onTarget ? Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir) : Vector3D.Zero;
-                        DampenSidewaysToZero(perpVel, THRUST_UPS);
+                        Vector3D perpVel = Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir);
+                        DampenSidewaysToZero(onTarget ? perpVel : Vector3D.Zero, THRUST_UPS);
+
+                        if (perpVel.LengthSquared() > Math.Pow(desiredStopTime * _minSideAccel, 2))
+                        {
+                            Stage = CruiseStage.ExcessivePerpVel;
+                            stageChanged = true;
+                        }
                     }
                 }
             }
@@ -565,7 +583,7 @@ namespace IngameScript
             //    throw new Exception("Not Implemented");
             //}
 
-            if (_stage == CruiseStage.Overshoot)
+            if (_stage == CruiseStage.Overshoot || _stage == CruiseStage.ExcessivePerpVel)
             {
                 Vector3D desiredAimDir = -currentVelocity.Normalized();
                 Orient(desiredAimDir);
@@ -586,7 +604,7 @@ namespace IngameScript
                 if (currentSpeed < 0.05)
                 {
                     Stage = CruiseStage.Terminated;
-                    Terminate("Cruise terminated due to target overshoot");
+                    Terminate("Cruise terminated due to " + (_stage == CruiseStage.Overshoot ? "target overshoot" : "excessive lateral speed"));
                     return;
                 }
             }
@@ -616,6 +634,11 @@ namespace IngameScript
         {
             _thrustController.UpdateThrusts();
             _forwardAccelPremult = (float)(_thrustController.GetThrustInDirection(Direction.Forward) / _gridMass) * MaxThrustRatio;
+            double leftThrust = _thrustController.GetThrustInDirection(Direction.Left);
+            double rightThrust = _thrustController.GetThrustInDirection(Direction.Right);
+            double upThrust = _thrustController.GetThrustInDirection(Direction.Up);
+            double downThrust = _thrustController.GetThrustInDirection(Direction.Down);
+            _minSideAccel = (float)(Math.Min(Math.Min(leftThrust, rightThrust), Math.Min(upThrust, downThrust)) / _gridMass);
         }
 
         private void SetDampenerState(bool enabled) => ShipController.DampenersOverride = enabled;

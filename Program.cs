@@ -359,12 +359,12 @@ const int printInterval = 10;
             if (now == NavModeEnum.Sleep)
             {
                 Runtime.UpdateFrequency = UpdateFrequency.None;
-                optionalInfo = "Sleeping...";
+                //optionalInfo = "Sleeping...";
             }
             else if (old == NavModeEnum.Sleep)
             {
                 Runtime.UpdateFrequency = UpdateFrequency.Update1;
-                optionalInfo = "";
+                //optionalInfo = "";
             }
         }
 
@@ -487,8 +487,11 @@ Journey Start
             }
 
             //placeholder - 
-            pbOut.AppendLine();
-            _cruiseController?.AppendStatus(pbOut);
+            if (_cruiseController != null)
+            {
+                pbOut.AppendLine();
+                _cruiseController?.AppendStatus(pbOut);
+            }
 
             pbOut.Append("\n-- Loaded Config --\n" +
                 nameof(config.MaxThrustOverrideRatio) + "=" + config.MaxThrustOverrideRatio.ToString() + "\n" +
@@ -525,7 +528,7 @@ Journey Start
             Echo(pbOut.ToString());
             pbOut.Clear();
 
-            if (consoleLcd != null)
+            if (consoleLcd != null && _cruiseController != null)
             {
                 _cruiseController?.AppendStatus(pbOut);
                 consoleLcd?.WriteText(pbOut);
