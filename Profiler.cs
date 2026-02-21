@@ -20,7 +20,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    internal sealed class Profiler
+    public sealed class Profiler
     {
         public double RunningAverageMs { get; private set; }
         private double AverageRuntimeMs

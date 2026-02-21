@@ -337,7 +337,7 @@ namespace IngameScript
             }
         }
 
-        private static double ComputeTimeToDecel(double velocity, double displacement, double accel, double decel)
+        public static double ComputeTimeToDecel(double velocity, double displacement, double accel, double decel)
         {
             if (decel <= 0)
             {

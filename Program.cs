@@ -123,14 +123,14 @@ const int printInterval = 10;
         private int idleCounter = 0;
 
         private IAimController aimController;
-        private Profiler profiler;
+        public static Profiler profiler;
         private WcPbApi wcApi;
         private bool wcApiActive = false;
         private VariableThrustController thrustController;
 
         private DateTime bootTime;
         public const string programName = "NavOS";
-        public const string versionStr = "2.16-alpha2";
+        public const string versionStr = "2.16-a3";
 
         public Config config;
 
@@ -487,6 +487,7 @@ Journey Start
             }
 
             //placeholder - 
+            pbOut.AppendLine();
             _cruiseController?.AppendStatus(pbOut);
 
             pbOut.Append("\n-- Loaded Config --\n" +
@@ -500,8 +501,6 @@ Journey Start
                 nameof(config.CruiseOffsetSideDist) + "=" + config.CruiseOffsetSideDist.ToString() + "\n" +
                 nameof(config.Ship180TurnTimeSeconds) + "=" + config.Ship180TurnTimeSeconds.ToString() + "\n" +
                 nameof(config.MaintainDesiredSpeed) + "=" + config.MaintainDesiredSpeed.ToString() + "\n");
-
-            consoleLcd?.WriteText(pbOut);
 
             if (debugLcd != null)
                 pbOut.Append("\nDebug: ").Append(debugLcd != null);
@@ -524,8 +523,14 @@ Journey Start
             .Append("\nMax: " + profiler.MaxRuntimeMsFast);
 
             Echo(pbOut.ToString());
-
             pbOut.Clear();
+
+            if (consoleLcd != null)
+            {
+                _cruiseController?.AppendStatus(pbOut);
+                consoleLcd?.WriteText(pbOut);
+                pbOut.Clear();
+            }
         }
 
         public static string SecondsToDuration(double seconds, bool fractions = false)
