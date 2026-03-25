@@ -28,7 +28,7 @@ namespace IngameScript
         public double CruiseOffsetSideDist { get; set; } = 500;
         public double Ship180TurnTimeSeconds { get; set; } = 10.0;
         public bool MaintainDesiredSpeed { get; set; } = true;
-        public bool ContinuousVectorScan { get; set; } = false;
+        public bool ContinuousVectorScan { get; set; } = true;
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
