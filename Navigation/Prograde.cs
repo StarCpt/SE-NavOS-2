@@ -23,6 +23,8 @@ namespace IngameScript
     public class Prograde : Orient
     {
         private const double TERMINATE_SPEED = 5;
+        Vector3D initVelocity = Vector3D.Zero;
+        bool _useInitVector = false;
 
         public override string Name => nameof(Prograde);
 
@@ -34,6 +36,10 @@ namespace IngameScript
         public override void Run()
         {
             Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
+            if (initVelocity == Vector3D.Zero)
+                initVelocity = shipVelocity;
+            double diff = Math.Round(Vector3D.Dot(shipVelocity.SafeNormalize(), initVelocity.SafeNormalize()), 5);
+            if (diff < 0.9999 && !ShipController.DampenersOverride) _useInitVector = true;
 
             if (shipVelocity.LengthSquared() <= TERMINATE_SPEED * TERMINATE_SPEED)
             {
@@ -41,7 +47,7 @@ namespace IngameScript
                 return;
             }
 
-            Orient(shipVelocity);
+            Orient(_useInitVector ? initVelocity : shipVelocity);
         }
     }
 }
