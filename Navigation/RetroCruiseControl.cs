@@ -243,7 +243,7 @@ namespace IngameScript
             }
 
             Vector3D currentPos = ShipController.WorldAABB.Center;
-            Vector3D currentVelocity = ShipController.GetShipVelocities().LinearVelocity + _naturalGravity;
+            Vector3D currentVelocity = ShipController.GetTrueVelocity() + _naturalGravity;
             double currentSpeed = currentVelocity.Length();
 
             Vector3D displacement = Target - currentPos;

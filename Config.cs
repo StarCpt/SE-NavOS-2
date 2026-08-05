@@ -28,6 +28,12 @@ namespace IngameScript
         public double CruiseOffsetSideDist { get; set; } = 500;
         public double Ship180TurnTimeSeconds { get; set; } = 10.0;
         public bool MaintainDesiredSpeed { get; set; } = true;
+
+        /// <summary>
+        /// Upper bound for commanded speed, in m/s. 0 uses the world ship speed limit, which is
+        /// the stock behaviour. Set this above the world limit on servers running Flip and Burn.
+        /// </summary>
+        public double MaxSpeedOverride { get; set; } = 0;
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
@@ -159,6 +165,13 @@ namespace IngameScript
                     conf.MaintainDesiredSpeed = val;
             }
 
+            if (confValues.TryGetValue(nameof(MaxSpeedOverride), out result))
+            {
+                double val;
+                if (double.TryParse(result, out val))
+                    conf.MaxSpeedOverride = val;
+            }
+
             config = conf;
             return true;
         }
@@ -196,6 +209,10 @@ namespace IngameScript
             strb.AppendLine();
             strb.AppendLine("// Keeps the ship oriented to the target and maintain speed until decel time");
             strb.AppendLine($"{nameof(MaintainDesiredSpeed)}={MaintainDesiredSpeed}");
+            strb.AppendLine();
+            strb.AppendLine("// Max commanded speed in m/s. 0 = use the world speed limit.");
+            strb.AppendLine("// Raise this above the world limit on servers running Flip and Burn.");
+            strb.AppendLine($"{nameof(MaxSpeedOverride)}={MaxSpeedOverride}");
             strb.AppendLine();
             strb.AppendLine("// Format: <speed> <stopAtWaypoint> <GPS>");
             strb.AppendLine("[Journey Start]");

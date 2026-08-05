@@ -112,7 +112,7 @@ namespace IngameScript
             thrustController.UpdateThrusts();
             thrustController.SetDampenerState(false);
 
-            Vector3D currentVelocity = shipController.GetShipVelocities().LinearVelocity;
+            Vector3D currentVelocity = shipController.GetTrueVelocity();
             Vector3D displacement = target - shipController.WorldAABB.Center;
 
             bool targetReachedDist = displacement.LengthSquared() <= (TARGET_REACHED_DIST * TARGET_REACHED_DIST);

@@ -33,7 +33,7 @@ namespace IngameScript
 
         public override void Run()
         {
-            Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
+            Vector3D shipVelocity = ShipController.GetTrueVelocity();
 
             if (shipVelocity.LengthSquared() <= TERMINATE_SPEED * TERMINATE_SPEED)
             {

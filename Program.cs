@@ -296,6 +296,9 @@ const int printInterval = 10;
             profiler.Run();
             counter++;
 
+            // Must run every tick, before any controller reads velocity.
+            TrueVelocity.Sample(Me.CubeGrid.WorldMatrix.Translation, Runtime.TimeSinceLastRun.TotalSeconds);
+
             if (argument.Length > 0)
             {
                 HandleArgs(argument);

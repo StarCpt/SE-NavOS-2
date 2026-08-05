@@ -48,7 +48,7 @@ namespace IngameScript
                 thrustController.UpdateThrusts();
             }
 
-            Vector3D shipVelocity = ShipController.GetShipVelocities().LinearVelocity;
+            Vector3D shipVelocity = ShipController.GetTrueVelocity();
             double velocitySq = shipVelocity.LengthSquared();
 
             Vector3D gravity = ShipController.GetNaturalGravity();

@@ -23,6 +23,9 @@ Important: In gravity forward override ratio may exceed this value.
 You need to set this to equal to or more than the actual 180 turn time. It determines when to turn for deceleration in case it can't get up to full cruise speed.
 This field is not calculated automatically, run CalibrateTurn to calculate this field. Recalibration is required whenever the mass of the ship changes significantly.
 
+# MaxSpeedOverride: Maximum commanded speed in m/s. 0 uses the world ship speed limit.
+Set this above the world limit on servers where a mod moves the grid faster than physics allows (e.g. Flip and Burn).
+
 # MaintainDesiredSpeed: Keeps the ship oriented to the target during cruise and maintains the desired speed if possible (resists RTS friction) until deceleration time.
 
 # [Journey Start] and [Journey End] (Experimental!)

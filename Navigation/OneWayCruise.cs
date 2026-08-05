@@ -159,7 +159,7 @@ namespace IngameScript
                 UpdateThrustAndAccel();
             }
 
-            Vector3D velocity = ShipController.GetShipVelocities().LinearVelocity + naturalGravity;
+            Vector3D velocity = ShipController.GetTrueVelocity() + naturalGravity;
             double velocityLength = velocity.Length();
 
             Vector3D displacement = Target - ShipController.WorldAABB.Center;

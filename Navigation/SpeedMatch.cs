@@ -173,7 +173,7 @@ namespace IngameScript
 
             if (target.HasValue && counter % 5 == 0)
             {
-                relativeVelocity = target.Value.Velocity - ShipController.GetShipVelocities().LinearVelocity;
+                relativeVelocity = target.Value.Velocity - ShipController.GetTrueVelocity();
                 Vector3 relativeVelocityLocal = Vector3D.TransformNormal(relativeVelocity, MatrixD.Transpose(ShipController.WorldMatrix));
                 Vector3 thrustAmount = -relativeVelocityLocal * 10 * gridMass;
 
